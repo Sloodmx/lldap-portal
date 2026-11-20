@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ _("Password reset") }}</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="stylesheet" href="/static/css/app.css">
+  {% if turnstile_site_key %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endif %}
+</head>
+<body>
+  <div class="blob-container">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="page-header">
+      {% if logo_url %}<img src="{{ logo_url }}" alt="{{ app_name }}">{% endif %}
+      <h1 class="server-title">{{ _("Forgot your password?") }}</h1>
+      <p class="subtitle">
+        {{ _("Enter your email address or username and we will send you a link to reset your {app} password.", app=app_name) }}
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        {% if error %}
+          <div class="error-box" role="alert">
+            <p>{{ error }}</p>
+          </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('forgot_password_submit') }}">
+          <div>
+            <label class="jelly-label" for="email">{{ _("Email or username") }}</label>
+            <input
+              class="jelly-input"
+              type="text"
+              id="email"
+              name="email"
+              placeholder="{{ _('you@example.com or username') }}"
+              autocomplete="username"
+              required
+              autofocus
+            >
+          </div>
+
+          {% if turnstile_site_key %}
+          <div class="turnstile-wrap">
+            <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"
+                 data-theme="dark" data-size="flexible" data-language="{{ lang }}"></div>
+          </div>
+          {% endif %}
+          <button type="submit" class="jelly-btn">
+            {{ _("Send reset link") }}
+          </button>
+        </form>
+
+        <p class="back-link">
+          {% if login_url %}<a href="{{ login_url }}">{{ _("← Back to sign-in") }}</a>{% endif %}
+        </p>
+      </div>
+    </div>
+
+    <p class="jelly-footer">{{ _("Secure password reset powered by {app}", app=app_name)|upper }}</p>
+  </div>
+</body>
+</html>

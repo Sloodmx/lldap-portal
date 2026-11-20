@@ -1,0 +1,255 @@
+
+.field + .field { margin-top: 1rem; }
+
+.page-wrapper--wide { max-width: 60rem; }
+
+.admin-nav {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.admin-nav a {
+  flex: 1;
+  text-align: center;
+  padding: .7em 1em;
+  border: 1px solid hsl(0deg 100% 16.27%);
+  border-radius: .5em;
+  background-color: rgba(22,22,22,.85);
+  color: #cfcfcf;
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-decoration: none;
+  transition: color .2s ease, border-color .2s ease;
+}
+
+.admin-nav a:hover { color: #ff1a1a; border-color: #ff1a1a; }
+
+.admin-nav a.is-current {
+  color: #ffffff;
+  border-color: rgb(204,0,0);
+  box-shadow: 0 0 12px rgba(204,0,0,.35);
+}
+
+.label-hint {
+  color: #7a7a7a;
+  font-size: .85em;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.info-box p + p { margin-top: .5rem; }
+
+.resend-form { margin-top: 1rem; }
+.logout-form { margin-top: 1.5rem; }
+
+.section-title {
+  margin-top: 2rem;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.admin-form { display: grid; gap: 1rem; margin-top: 1rem; }
+
+.check-group { border: 0; padding: 0; margin: 0; }
+.check-group legend { margin-bottom: .5rem; }
+.check { display: flex; align-items: center; gap: .5rem; margin: .25rem 0; }
+
+.link-box { word-break: break-all; font-family: monospace; }
+
+.table-wrap { overflow-x: auto; margin-top: 1rem; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: .5rem;
+  border-bottom: 1px solid #2c2c2c;
+  vertical-align: middle;
+}
+.admin-table td form { margin: 0; }
+
+.status-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: .4rem;
+}
+
+.status-list li {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  font-size: .95rem;
+  color: #cfcfcf;
+}
+
+.status-dot {
+  width: .6rem;
+  height: .6rem;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.status-ok .status-dot { background: #3fbf6f; box-shadow: 0 0 8px rgba(63,191,111,.6); }
+.status-missing .status-dot { background: #d95454; box-shadow: 0 0 8px rgba(217,84,84,.6); }
+.status-neutral .status-dot { background: #8c8c8c; }
+.status-neutral .status-text { color: #cfcfcf; }
+
+.status-text { margin-left: auto; font-size: .85rem; color: #8c8c8c; }
+
+.notice-box {
+  background: rgba(214,158,46,.1);
+  border: 1px solid rgba(214,158,46,.55);
+  border-radius: .5em;
+  padding: .75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: .9rem;
+  color: #e6c07b;
+  line-height: 1.5;
+}
+
+.notice-box a { color: #ffd479; }
+
+.settings-note {
+  margin-top: 1.5rem;
+  font-size: .82rem;
+  color: #8c8c8c;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.settings-note code { color: #cfcfcf; }
+
+.test-form { display: grid; gap: 1rem; margin-top: 1rem; }
+
+select.jelly-input { appearance: none; }
+
+.role-list { display: grid; gap: .75rem; }
+
+.role-row {
+  display: grid;
+  gap: .5rem;
+  grid-template-columns: 1fr;
+  padding: .75rem;
+  border: 1px solid #2c2c2c;
+  border-radius: .5em;
+  background-color: rgba(22,22,22,.5);
+}
+
+@media (min-width: 34rem) {
+  .role-row { grid-template-columns: 1fr 1fr; align-items: end; }
+}
+
+.role-row .field { margin: 0; }
+
+.role-add { margin-top: .75rem; }
+
+.role-add-btn {
+  display: inline-block;
+  padding: .6em 1.2em;
+  border: 1px solid hsl(0deg 100% 16.27%);
+  border-radius: .5em;
+  background-color: rgba(22,22,22,.85);
+  color: #cfcfcf;
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 600;
+  letter-spacing: .5px;
+  cursor: pointer;
+  list-style: none;
+  transition: color .2s ease, border-color .2s ease;
+}
+
+.role-add-btn::-webkit-details-marker { display: none; }
+.role-add-btn:hover { color: #ff1a1a; border-color: #ff1a1a; }
+
+.role-new {
+  display: grid;
+  gap: .75rem;
+  margin-top: .75rem;
+  padding: .75rem;
+  border: 1px dashed #2c2c2c;
+  border-radius: .5em;
+}
+
+.tab-radio {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.tab-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: 0 0 1.5rem;
+}
+
+.tab-nav label {
+  flex: 1 1 auto;
+  text-align: center;
+  padding: .6em 1em;
+  border: 1px solid hsl(0deg 100% 16.27%);
+  border-radius: .5em;
+  background-color: rgba(22,22,22,.85);
+  color: #cfcfcf;
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 600;
+  letter-spacing: .5px;
+  cursor: pointer;
+  transition: color .2s ease, border-color .2s ease;
+}
+
+.tab-nav label:hover { color: #ff1a1a; border-color: #ff1a1a; }
+
+.tab-panel { display: none; }
+
+.settings-save { margin-top: 1.5rem; }
+
+#tab-general:checked ~ .tab-nav label[for="tab-general"],
+#tab-smtp:checked ~ .tab-nav label[for="tab-smtp"],
+#tab-ldap:checked ~ .tab-nav label[for="tab-ldap"],
+#tab-reset:checked ~ .tab-nav label[for="tab-reset"],
+#tab-turnstile:checked ~ .tab-nav label[for="tab-turnstile"],
+#tab-roles:checked ~ .tab-nav label[for="tab-roles"],
+#tab-admin:checked ~ .tab-nav label[for="tab-admin"],
+#tab-diag:checked ~ .tab-nav label[for="tab-diag"] {
+  color: #ffffff;
+  border-color: rgb(204,0,0);
+  box-shadow: 0 0 12px rgba(204,0,0,.35);
+}
+
+#tab-general:focus-visible ~ .tab-nav label[for="tab-general"],
+#tab-smtp:focus-visible ~ .tab-nav label[for="tab-smtp"],
+#tab-ldap:focus-visible ~ .tab-nav label[for="tab-ldap"],
+#tab-reset:focus-visible ~ .tab-nav label[for="tab-reset"],
+#tab-turnstile:focus-visible ~ .tab-nav label[for="tab-turnstile"],
+#tab-roles:focus-visible ~ .tab-nav label[for="tab-roles"],
+#tab-admin:focus-visible ~ .tab-nav label[for="tab-admin"],
+#tab-diag:focus-visible ~ .tab-nav label[for="tab-diag"] {
+  outline: 2px solid #ff1a1a;
+  outline-offset: 2px;
+}
+
+#tab-general:checked ~ #panel-general,
+#tab-smtp:checked ~ #panel-smtp,
+#tab-ldap:checked ~ #panel-ldap,
+#tab-reset:checked ~ #panel-reset,
+#tab-turnstile:checked ~ #panel-turnstile,
+#tab-roles:checked ~ #panel-roles,
+#tab-admin:checked ~ #panel-admin,
+#tab-diag:checked ~ #panel-diag {
+  display: block;
+}
+
+.admin-logo {
+  display: block;
+  margin: 0 auto 1.5rem;
+  max-width: 220px;
+  height: auto;
+}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ _("Email sent") }}</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <div class="blob-container">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="page-header">
+      {% if logo_url %}<img src="{{ logo_url }}" alt="{{ app_name }}">{% endif %}
+      <h1 class="server-title">{{ _("Email sent") }}</h1>
+    </div>
+    <div class="card">
+      <div class="card-body is-centered">
+        <div class="icon-wrap" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+        </div>
+
+        <h2>{{ _("Check your emails") }}</h2>
+
+        <p class="body-text">
+          {{ _("If an account is linked to") }}<br>
+          <!--email_off--><span class="email-highlight">{{ email }}</span><!--/email_off--><br>
+          {{ _("you will receive a reset link shortly.") }}
+        </p>
+
+        <div class="info-box">
+          {{ _("The link is valid for <strong>24 hours</strong> and can only be used once.")|safe }}<br>
+          {{ _("Also check your <strong>spam</strong> folder.")|safe }}
+        </div>
+
+        <p class="back-link">
+          <a href="{{ url_for('forgot_password') }}">{{ _("← Make another request") }}</a>
+        </p>
+      </div>
+    </div>
+
+    <p class="jelly-footer">{{ _("Secure password reset powered by {app}", app=app_name)|upper }}</p>
+  </div>
+</body>
+</html>

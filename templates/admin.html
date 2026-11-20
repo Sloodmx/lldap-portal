@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{{ _("Invitation administration") }}</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="/static/css/invite.css">
+</head>
+<body>
+  <div class="blob-container">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <div class="page-wrapper{{ ' page-wrapper--wide' if state in ('dashboard', 'settings') }}">
+    <div class="page-header">
+      {% if logo_url %}<img class="admin-logo" src="{{ logo_url }}" alt="{{ app_name }}">{% endif %}
+    </div>
+
+    {% if state in ("dashboard", "settings") %}
+    <nav class="admin-nav">
+      <a href="{{ url_for('admin_home') }}" class="{{ 'is-current' if state == 'dashboard' }}">{{ _("Invitations") }}</a>
+      <a href="{{ url_for('admin_settings') }}" class="{{ 'is-current' if state == 'settings' }}">{{ _("Configuration") }}</a>
+    </nav>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-body">
+
+        {% if state == "setup" %}
+          <h2 class="section-title">{{ _("Initial setup") }}</h2>
+          <div class="info-box">
+            <p>{{ _("No administrator password is set yet. Choose one now: it will be stored in the configuration file as a hash (never in clear text) and will not depend on any environment variable.") }}</p>
+          </div>
+          {% if error %}
+          <div class="error-box" role="alert"><p>{{ error }}</p></div>
+          {% endif %}
+          <form method="POST" action="{{ url_for('admin_setup') }}">
+            <div class="field">
+              <label class="jelly-label" for="username">{{ _("Username") }}</label>
+              <input class="jelly-input" type="text" id="username" name="username"
+                     value="{{ username|default('', true) }}" minlength="3" maxlength="32"
+                     pattern="[A-Za-z0-9][A-Za-z0-9._\-]{2,31}"
+                     autocomplete="username" required autofocus>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="password">{{ _("Administrator password") }}</label>
+              <input class="jelly-input" type="password" id="password" name="password"
+                     minlength="10" maxlength="256" autocomplete="new-password" required>
+              <span class="label-hint">{{ _("Minimum 10 characters, with an uppercase letter, a digit and a special character.") }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="confirm">{{ _("Confirm password") }}</label>
+              <input class="jelly-input" type="password" id="confirm" name="confirm"
+                     minlength="10" maxlength="256" autocomplete="new-password" required>
+            </div>
+            <button type="submit" class="jelly-btn">{{ _("Save") }}</button>
+          </form>
+
+        {% elif state == "login" %}
+          {% if error %}
+          <div class="error-box" role="alert"><p>{{ error }}</p></div>
+          {% endif %}
+          <form method="POST" action="{{ url_for('admin_login') }}">
+            <div class="field">
+              <label class="jelly-label" for="username">{{ _("Username") }}</label>
+              <input class="jelly-input" type="text" id="username" name="username"
+                     value="{{ username|default('', true) }}" minlength="3" maxlength="32"
+                     pattern="[A-Za-z0-9][A-Za-z0-9._\-]{2,31}"
+                     autocomplete="username" required autofocus>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="password">{{ _("Password") }}</label>
+              <input class="jelly-input" type="password" id="password" name="password"
+                     autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="jelly-btn">{{ _("Log in") }}</button>
+          </form>
+
+        {% elif state == "settings" %}
+          {% if error %}
+          <div class="error-box" role="alert"><p>{{ error }}</p></div>
+          {% endif %}
+          {% if smtp_diagnostic %}
+          <div class="notice-box" role="status">
+            <p><strong>{{ _("SMTP settings used for this test (the ones actually applied, not necessarily the form below):") }}</strong></p>
+            <ul class="status-list">
+              {% for label, value in smtp_summary %}
+              <li class="status-neutral">
+                <span class="status-dot" aria-hidden="true"></span>
+                {{ label }} <span class="status-text">{{ value }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+            <p>{{ _("The full settings (host, port, security, user, password) are in the container logs; no secret is written there.") }}</p>
+          </div>
+          {% endif %}
+          {% if info %}
+          <div class="info-box"><p>{{ info }}</p></div>
+          {% endif %}
+
+          <h2 class="section-title">{{ _("Configuration status") }}</h2>
+          <ul class="status-list">
+            {% for label, ok in status_items %}
+            <li class="{{ 'status-ok' if ok else 'status-missing' }}">
+              <span class="status-dot" aria-hidden="true"></span>
+              {{ label }} <span class="status-text">{{ _("configured") if ok else _("to complete") }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+
+          <form method="POST" action="{{ url_for('admin_save_settings') }}" class="admin-form">
+            {% set active = tab if tab in ('general','smtp','ldap','reset','turnstile','roles','admin','diag') else 'general' %}
+            <input type="radio" class="tab-radio" id="tab-general" name="settings_tab" value="general" {{ 'checked' if active == 'general' }}>
+            <input type="radio" class="tab-radio" id="tab-smtp" name="settings_tab" value="smtp" {{ 'checked' if active == 'smtp' }}>
+            <input type="radio" class="tab-radio" id="tab-ldap" name="settings_tab" value="ldap" {{ 'checked' if active == 'ldap' }}>
+            <input type="radio" class="tab-radio" id="tab-reset" name="settings_tab" value="reset" {{ 'checked' if active == 'reset' }}>
+            <input type="radio" class="tab-radio" id="tab-turnstile" name="settings_tab" value="turnstile" {{ 'checked' if active == 'turnstile' }}>
+            <input type="radio" class="tab-radio" id="tab-roles" name="settings_tab" value="roles" {{ 'checked' if active == 'roles' }}>
+            <input type="radio" class="tab-radio" id="tab-admin" name="settings_tab" value="admin" {{ 'checked' if active == 'admin' }}>
+            <input type="radio" class="tab-radio" id="tab-diag" name="settings_tab" value="diag" {{ 'checked' if active == 'diag' }}>
+            <nav class="tab-nav" aria-label="{{ _("Configuration sections") }}">
+              <label for="tab-general">{{ _("General") }}</label>
+              <label for="tab-smtp">{{ _("Email (SMTP)") }}</label>
+              <label for="tab-ldap">{{ _("LDAP directory") }}</label>
+              <label for="tab-reset">{{ _("Password reset") }}</label>
+              <label for="tab-turnstile">{{ _("Anti-bot") }}</label>
+              <label for="tab-roles">{{ _("Roles") }}</label>
+              <label for="tab-admin">{{ _("Admin") }}</label>
+              <label for="tab-diag">{{ _("Diagnostic") }}</label>
+            </nav>
+
+            <div class="tab-panel" id="panel-general">
+            <h2 class="section-title" id="sec-general">{{ _("General") }}</h2>
+            <div class="field">
+              <label class="jelly-label" for="app_name">{{ _("Service name") }}</label>
+              <input class="jelly-input" type="text" id="app_name" name="app_name"
+                     maxlength="40" value="{{ values.app_name }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="app_url">{{ _("Public URL") }}</label>
+              <input class="jelly-input" type="url" id="app_url" name="app_url"
+                     maxlength="200" placeholder="https://auth.example.com"
+                     value="{{ values.app_url }}">
+              <span class="label-hint">{{ _("Used to build invitation links. Optional: leave empty for local access (http://localhost:8080 or http://<ip>:8080); invitation links will then use the address the visitor used.") }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="logo_url">{{ _("Logo URL") }}</label>
+              <input class="jelly-input" type="url" id="logo_url" name="logo_url"
+                     maxlength="300" placeholder="https://auth.example.com/logo.png"
+                     value="{{ values.logo_url }}">
+              <span class="label-hint">{{ _("Optional. Image shown at the top of the pages. Leave empty for no logo.") }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="default_lang">{{ _("Language") }}</label>
+              <select class="jelly-input" id="default_lang" name="default_lang">
+                <option value="en" {{ "selected" if values.default_lang == 'en' }}>English</option>
+                <option value="fr" {{ "selected" if values.default_lang == 'fr' }}>Français</option>
+              </select>
+              <span class="label-hint">{{ _("Language of all pages and emails. Set by the administrator for everyone.") }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="trusted_proxies">{{ _("Trusted proxies (CIDR)") }}</label>
+              <input class="jelly-input" type="text" id="trusted_proxies" name="trusted_proxies"
+                     maxlength="400" placeholder="10.0.0.0/8, 172.16.0.0/12"
+                     value="{{ values.trusted_proxies }}">
+              <span class="label-hint">{{ _("Networks allowed to report the visitor's real address (Cloudflare, reverse proxy).") }}</span>
+            </div>
+            </div>
+
+            <div class="tab-panel" id="panel-smtp">
+            <h2 class="section-title" id="sec-smtp">{{ _("Email (SMTP)") }}</h2>
+            <div class="field">
+              <label class="jelly-label" for="smtp_host">{{ _("SMTP server") }}</label>
+              <input class="jelly-input" type="text" id="smtp_host" name="smtp_host"
+                     maxlength="200" placeholder="smtp.example.org" value="{{ values.smtp_host }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="smtp_port">{{ _("Port") }}</label>
+              <input class="jelly-input" type="number" id="smtp_port" name="smtp_port"
+                     min="1" max="65535" placeholder="587 / 465 / 25" value="{{ values.smtp_port }}">
+              <span class="label-hint">{{ _("Leave empty or change the security: the standard port of the chosen mode is used (587 STARTTLS, 465 SSL, 25 none).") }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="smtp_security">{{ _("Security") }}</label>
+              <select class="jelly-input" id="smtp_security" name="smtp_security">
+                {% for key, label in smtp_choices %}
+                <option value="{{ key }}" {{ "selected" if values.smtp_security == key }}>{{ _(label) }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="smtp_user">{{ _("SMTP user") }}</label>
+              <input class="jelly-input" type="text" id="smtp_user" name="smtp_user"
+                     maxlength="200" autocomplete="off" value="{{ values.smtp_user }}">
+              <span class="label-hint">{{ _("Leave empty if the server does not require authentication.") }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="smtp_pass">{{ _("SMTP password") }}</label>
+              <input class="jelly-input" type="password" id="smtp_pass" name="smtp_pass"
+                     maxlength="256" autocomplete="new-password" placeholder="{{ _('Leave empty to keep the current value') if has_secret.smtp_pass else _('None') }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="smtp_from">{{ _("Sender address") }}</label>
+              <input class="jelly-input" type="email" id="smtp_from" name="smtp_from"
+                     maxlength="254" placeholder="no-reply@example.org" value="{{ values.smtp_from }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="smtp_timeout">{{ _("Timeout (s)") }}</label>
+              <input class="jelly-input" type="number" id="smtp_timeout" name="smtp_timeout"
+                     min="1" max="120" value="{{ values.smtp_timeout }}">
+            </div>
+            </div>
+
+            <div class="tab-panel" id="panel-ldap">
+            <h2 class="section-title" id="sec-ldap">{{ _("LLDAP directory") }}</h2>
+            <div class="field">
+              <label class="jelly-label" for="lldap_url">{{ _("LDAP URL") }}</label>
+              <input class="jelly-input" type="text" id="lldap_url" name="lldap_url"
+                     maxlength="200" placeholder="ldap://lldap:3890" value="{{ values.lldap_url }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="lldap_base_dn">{{ _("Base DN") }}</label>
+              <input class="jelly-input" type="text" id="lldap_base_dn" name="lldap_base_dn"
+                     maxlength="200" placeholder="ou=people,dc=example,dc=org"
+                     value="{{ values.lldap_base_dn }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="lldap_http_url">{{ _("GraphQL URL") }}</label>
+              <input class="jelly-input" type="text" id="lldap_http_url" name="lldap_http_url"
+                     maxlength="200" placeholder="http://lldap:17170" value="{{ values.lldap_http_url }}">
+              <span class="label-hint">{{ _("LLDAP web interface (HTTP, port 17170 by default), <strong>not</strong> the LDAP URL. The LDAP API can only read the directory and change a password, so the application creates the account here, adds it to the groups defined under “Roles”, and deletes it if a step fails. Enter the address as the container sees it (e.g. http://lldap:17170 in Docker).")|safe }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="lldap_admin_username">{{ _("Technical account") }}</label>
+              <input class="jelly-input" type="text" id="lldap_admin_username" name="lldap_admin_username"
+                     maxlength="64" value="{{ values.lldap_admin_username }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="lldap_admin_password">{{ _("Technical account password") }}</label>
+              <input class="jelly-input" type="password" id="lldap_admin_password" name="lldap_admin_password"
+                     maxlength="256" autocomplete="new-password" placeholder="{{ _('Leave empty to keep the current value') if has_secret.lldap_admin_password else _('None') }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="ldap_timeout">{{ _("LDAP timeout (s)") }}</label>
+              <input class="jelly-input" type="number" id="ldap_timeout" name="ldap_timeout"
+                     min="1" max="120" value="{{ values.ldap_timeout }}">
+            </div>
+            </div>
+
+            <div class="tab-panel" id="panel-reset">
+            <h2 class="section-title" id="sec-reset">{{ _("Password reset") }}</h2>
+            <p class="label-hint">{{ _("Lets a user request, by email, a link to change their password. Uses a <strong>dedicated service account</strong> in LLDAP, with only the <code>lldap_password_manager</code> role. Password reset requires a <strong>public URL</strong> (General section).")|safe }}</p>
+            <div class="field">
+              <label class="jelly-label" for="reset_bind_user">{{ _("Service account") }}</label>
+              <input class="jelly-input" type="text" id="reset_bind_user" name="reset_bind_user"
+                     maxlength="64" placeholder="{{ _('e.g. ldap-reset-pass') }}" value="{{ values.reset_bind_user }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="reset_bind_password">{{ _("Service account password") }}</label>
+              <input class="jelly-input" type="password" id="reset_bind_password" name="reset_bind_password"
+                     maxlength="256" autocomplete="new-password" placeholder="{{ _('Leave empty to keep the current value') if has_secret.reset_bind_password else _('None') }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="reset_allowed_groups">{{ _("Allowed groups") }}</label>
+              <input class="jelly-input" type="text" id="reset_allowed_groups" name="reset_allowed_groups"
+                     maxlength="300" placeholder="{{ _('e.g. users, family') }}" value="{{ values.reset_allowed_groups }}">
+              <span class="label-hint">{{ _("LLDAP group names, separated by commas. Only members of at least one of these groups can reset. Empty = all accounts.") }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="reset_cooldown">{{ _("Delay between two requests (s)") }}</label>
+              <input class="jelly-input" type="number" id="reset_cooldown" name="reset_cooldown"
+                     min="30" max="86400" value="{{ values.reset_cooldown }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="login_url">{{ _("Sign-in page (back link)") }}</label>
+              <input class="jelly-input" type="url" id="login_url" name="login_url"
+                     maxlength="200" placeholder="https://auth.example.com" value="{{ values.login_url }}">
+              <span class="label-hint">{{ _("Optional: “Back to sign-in” link shown on the password reset pages.") }}</span>
+            </div>
+            </div>
+
+            <div class="tab-panel" id="panel-turnstile">
+            <h2 class="section-title" id="sec-turnstile">{{ _("Anti-bot (Cloudflare Turnstile)") }}</h2>
+            <ul class="status-list">
+              <li class="{{ 'status-ok' if turnstile_active else 'status-missing' }}">
+                <span class="status-dot" aria-hidden="true"></span>
+                {{ _("Turnstile verification") }}
+                <span class="status-text">{{ _("active") if turnstile_active else _("disabled") }}</span>
+              </li>
+            </ul>
+            <div class="field">
+              <label class="jelly-label" for="turnstile_site_key">{{ _("Turnstile site key") }}</label>
+              <input class="jelly-input" type="text" id="turnstile_site_key" name="turnstile_site_key"
+                     maxlength="100" autocomplete="off" spellcheck="false"
+                     placeholder="0x4AAAAAAA..." value="{{ values.turnstile_site_key }}">
+              <span class="label-hint">{{ _("Public: sent to the browser to display the widget.") }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="turnstile_secret_key">{{ _("Turnstile secret key") }}</label>
+              <input class="jelly-input" type="password" id="turnstile_secret_key" name="turnstile_secret_key"
+                     maxlength="256" autocomplete="new-password"
+                     placeholder="{{ _('Leave empty to keep the current value') if has_secret.turnstile_secret_key else _('None') }}">
+              <span class="label-hint">{{ _("Stays on the server; used to validate the response with Cloudflare.") }}</span>
+            </div>
+            <div class="info-box">
+              <p>{{ _("The widget appears on the “Forgot password” page and on the invitation form, only when <strong>both keys</strong> are filled in. To disable Turnstile, empty the site key and save.")|safe }}</p>
+              <p>{{ _("The service's domain name must be added to the widget's “Hostnames” on the Cloudflare side. The administration login is not protected by Turnstile, so you can always fix the keys if something goes wrong.") }}</p>
+            </div>
+            </div>
+
+            <div class="tab-panel" id="panel-roles">
+            <h2 class="section-title" id="sec-roles">{{ _("Invitation roles") }}</h2>
+            <p class="label-hint">{{ _("Each role below becomes a checkbox when creating an invitation: the new user is automatically added to the matching LLDAP group. The <strong>display name</strong> is what the visitor sees (e.g. “Media”); the <strong>LLDAP group name</strong> is the exact group name in the directory (e.g. <code>media</code>). A numeric group ID is also accepted. To <strong>delete</strong> a role, empty both fields, then save.")|safe }}</p>
+            <div class="role-list">
+              {% for role in roles %}
+              <div class="role-row">
+                <div class="field">
+                  <label class="jelly-label" for="role_label_{{ loop.index }}">{{ _("Display name") }}</label>
+                  <input class="jelly-input" type="text" id="role_label_{{ loop.index }}"
+                         name="role_label" maxlength="40" value="{{ role.label }}"
+                         placeholder="{{ _('e.g. Media') }}">
+                </div>
+                <div class="field">
+                  <label class="jelly-label" for="role_group_{{ loop.index }}">{{ _("LLDAP group name") }}</label>
+                  <input class="jelly-input" type="text" id="role_group_{{ loop.index }}"
+                         name="role_group" maxlength="64" value="{{ role.group }}"
+                         placeholder="{{ _('e.g. media') }}">
+                </div>
+                <input type="hidden" name="role_key" value="{{ role.key }}">
+              </div>
+              {% else %}
+              <p class="label-hint">{{ _("No role: add one below, otherwise no invitation can be created.") }}</p>
+              {% endfor %}
+            </div>
+            <details class="role-add">
+              <summary class="role-add-btn">{{ _("Add a role") }}</summary>
+              <div class="role-new">
+                <p class="label-hint">{{ _("Fill in both fields, then click “Save configuration” at the bottom of the page.") }}</p>
+                {% for i in range(1) %}
+                <div class="role-row">
+                  <div class="field">
+                    <label class="jelly-label" for="role_new_label_{{ i }}">{{ _("Display name") }}</label>
+                    <input class="jelly-input" type="text" id="role_new_label_{{ i }}"
+                           name="role_label" maxlength="40" placeholder="{{ _('e.g. Music') }}">
+                  </div>
+                  <div class="field">
+                    <label class="jelly-label" for="role_new_group_{{ i }}">{{ _("LLDAP group name") }}</label>
+                    <input class="jelly-input" type="text" id="role_new_group_{{ i }}"
+                           name="role_group" maxlength="64" placeholder="{{ _('e.g. music') }}">
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </details>
+            </div>
+
+            <div class="tab-panel" id="panel-admin">
+            <h2 class="section-title" id="sec-admin">{{ _("Administrator access") }}</h2>
+            <div class="field">
+              <label class="jelly-label" for="admin_username">{{ _("Administrator username") }}</label>
+              <input class="jelly-input" type="text" id="admin_username" name="admin_username"
+                     minlength="3" maxlength="32" pattern="[A-Za-z0-9][A-Za-z0-9._\-]{2,31}"
+                     value="{{ values.admin_username }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="admin_new_password">{{ _("New administrator password") }}</label>
+              <input class="jelly-input" type="password" id="admin_new_password" name="admin_new_password"
+                     minlength="10" maxlength="256" autocomplete="new-password"
+                     placeholder="{{ _('Leave empty to keep the current password') }}">
+              <span class="label-hint">{{ _("Minimum 10 characters, with an uppercase letter, a digit and a special character.") }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="admin_confirm_password">{{ _("Confirm new password") }}</label>
+              <input class="jelly-input" type="password" id="admin_confirm_password"
+                     name="admin_confirm_password" minlength="10" maxlength="256"
+                     autocomplete="new-password">
+            </div>
+            </div>
+
+            <div class="tab-panel" id="panel-diag">
+              <h2 class="section-title" id="sec-test">{{ _("Test email") }}</h2>
+              <div class="field">
+                <label class="jelly-label" for="test_email">{{ _("Test email address") }}</label>
+                <input class="jelly-input" type="email" id="test_email" name="test_email"
+                       maxlength="254" placeholder="you@example.com">
+                <span class="label-hint">{{ _("Save the configuration first, then send a test message. The button below uses the <strong>saved</strong> settings.")|safe }}</span>
+              </div>
+              <button type="submit" class="jelly-btn" formnovalidate
+                      formaction="{{ url_for('admin_test_email') }}">{{ _("Send a test email") }}</button>
+
+              <h2 class="section-title" id="sec-files">{{ _("Data files") }}</h2>
+              <ul class="status-list">
+                <li class="{{ 'status-ok' if data_dir_writable else 'status-missing' }}">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  {{ _("Folder") }} <code>{{ data_dir }}</code>
+                  <span class="status-text">{{ _("writable") if data_dir_writable else _("not writable") }}</span>
+                </li>
+                {% for label, path, present in data_files %}
+                <li class="{{ 'status-ok' if present else 'status-missing' }}">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  {{ label }} <span class="status-text">{{ _("present") if present else _("absent") }}</span>
+                </li>
+                {% endfor %}
+              </ul>
+              <p class="settings-note">
+                {{ _("Configuration saved in <code>{path}</code>. The administrator password is kept as a <strong>scrypt hash</strong> (not reversible), but the SMTP, LLDAP technical account and service account passwords are stored <strong>in clear text</strong>: the file is mode 0600 and must stay protected.", path=settings_path)|safe }}
+              </p>
+            </div>
+
+            <div class="settings-save">
+              <button type="submit" class="jelly-btn">{{ _("Save configuration") }}</button>
+            </div>
+          </form>
+
+          <form method="POST" action="{{ url_for('admin_logout') }}" class="logout-form">
+            <button type="submit" class="jelly-btn">{{ _("Log out") }}</button>
+          </form>
+
+        {% else %}
+          {% if error %}
+          <div class="error-box" role="alert"><p>{{ error }}</p></div>
+          {% endif %}
+          {% if new_link %}
+          <div class="info-box">
+            <p>{{ _("Invitation link (shown only once):") }}</p>
+            <p class="link-box"><code>{{ new_link }}</code></p>
+          </div>
+          {% endif %}
+          {% if not config_ok %}
+          <div class="notice-box">
+            <p>{{ _("Some settings are not complete yet: see the")|safe }}
+               <a href="{{ url_for('admin_settings') }}">{{ _("Configuration") }}</a> {{ _("page.") }}</p>
+          </div>
+          {% endif %}
+          {% if not settings_saved %}
+          <div class="notice-box">
+            <p>{{ _("The configuration has never been saved: the file <code>{path}</code> does not exist yet. The values in use are the defaults (or those of the environment variables). Go to")|safe|replace("{path}", settings_path) }}
+               <a href="{{ url_for('admin_settings') }}">{{ _("Configuration") }}</a> {{ _("and click “Save” to create the file.") }}</p>
+          </div>
+          {% endif %}
+
+          <h2 class="section-title">{{ _("New invitation") }}</h2>
+          <form method="POST" action="{{ url_for('admin_create_invite') }}" class="admin-form">
+            <fieldset class="check-group">
+              <legend class="jelly-label">{{ _("Roles granted automatically") }}</legend>
+              {% for key, label in apps %}
+              <label class="check"><input type="checkbox" name="apps" value="{{ key }}"> {{ label }}</label>
+              {% else %}
+              <p class="label-hint">{{ _("No role configured: see the")|safe }}
+                 <a href="{{ url_for('admin_settings') }}">{{ _("Configuration") }}</a> {{ _("page.") }}</p>
+              {% endfor %}
+            </fieldset>
+            <div class="field">
+              <label class="jelly-label" for="uses">{{ _("Number of uses") }}</label>
+              <input class="jelly-input" type="number" id="uses" name="uses" value="1" min="1" max="50" required>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="days">{{ _("Valid for (days)") }}</label>
+              <input class="jelly-input" type="number" id="days" name="days" value="7" min="1" max="90" required>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="name">{{ _("Invite name (optional)") }}</label>
+              <input class="jelly-input" type="text" id="name" name="name" maxlength="80"
+                     placeholder="{{ _('e.g. John, family friend') }}">
+              <span class="label-hint">{{ _("Memo for the audit log (“name=…”). The visitor does not see it.") }}</span>
+            </div>
+            <button type="submit" class="jelly-btn">{{ _("Create invite") }}</button>
+          </form>
+
+          <h2 class="section-title">{{ _("Invitations") }}</h2>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>{{ _("Name") }}</th><th>{{ _("Roles") }}</th><th>{{ _("Uses") }}</th><th>{{ _("Expires") }}</th><th>{{ _("Status") }}</th><th></th></tr>
+              </thead>
+              <tbody>
+                {% for inv in invites %}
+                <tr>
+                  <td>{{ inv.name or "—" }}</td>
+                  <td>{{ inv.apps }}</td>
+                  <td>{{ inv.uses_left }} / {{ inv.uses_total }}</td>
+                  <td>{{ inv.expires }}</td>
+                  <td>{{ inv.status }}</td>
+                  <td>
+                    {% if inv.active %}
+                    <form method="POST" action="{{ url_for('admin_revoke_invite', inv_id=inv.id) }}">
+                      <button type="submit" class="jelly-btn">{{ _("Revoke") }}</button>
+                    </form>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6">{{ _("No invitation.") }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <form method="POST" action="{{ url_for('admin_purge_invites') }}" class="logout-form">
+            <p class="label-hint">{{ _("Removes revoked, expired or used-up invitations from the list. Active links remain usable.") }}</p>
+            <button type="submit" class="jelly-btn">{{ _("Delete inactive invite history") }}</button>
+          </form>
+
+          <form method="POST" action="{{ url_for('admin_logout') }}" class="logout-form">
+            <button type="submit" class="jelly-btn">{{ _("Log out") }}</button>
+          </form>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <p class="jelly-footer">{{ _("Administration of {app}", app=app_name)|upper }}</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ _("New password") }}</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <div class="blob-container">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="page-header">
+      {% if logo_url %}<img src="{{ logo_url }}" alt="{{ app_name }}">{% endif %}
+      <h1 class="server-title">
+        {% if state == "form" %}{{ _("New password") }}{% elif state == "done" %}{{ _("Password changed") }}{% else %}{{ _("This link is no longer valid") }}{% endif %}
+      </h1>
+    </div>
+
+    <div class="card">
+      <div class="card-body{% if state != 'form' %} is-centered{% endif %}">
+
+        {% if state == "form" %}
+          {% if error %}
+          <div class="error-box" role="alert"><p>{{ error }}</p></div>
+          {% endif %}
+
+          <form method="POST" action="{{ url_for('reset_password', token=token) }}">
+            <div class="field">
+              <label class="jelly-label" for="password">{{ _("New password") }}</label>
+              <input class="jelly-input" type="password" id="password" name="password"
+                     minlength="10" maxlength="256" autocomplete="new-password" required autofocus>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="confirm">{{ _("Confirm password") }}</label>
+              <input class="jelly-input" type="password" id="confirm" name="confirm"
+                     minlength="10" maxlength="256" autocomplete="new-password" required>
+            </div>
+            <div class="info-box">{{ _("At least <strong>10 characters</strong>, with an uppercase letter, a digit and a special character.")|safe }}</div>
+            <button type="submit" class="jelly-btn">{{ _("Change my password") }}</button>
+          </form>
+
+        {% elif state == "done" %}
+          <div class="icon-wrap" aria-hidden="true">
+            <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+          </div>
+          <h2>{{ _("You're all set") }}</h2>
+          <p class="body-text">{{ _("Your password has been updated. You can now sign in with your new password.") }}</p>
+          <p class="back-link">{% if login_url %}<a href="{{ login_url }}">{{ _("← Back to sign-in") }}</a>{% endif %}</p>
+
+        {% else %}
+          <h2>{{ _("This link is no longer valid") }}</h2>
+          <p class="body-text">{{ _("It has expired, has already been used, or is not valid.") }}</p>
+          <p class="back-link"><a href="{{ url_for('forgot_password') }}">{{ _("← Make a new request") }}</a></p>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <p class="jelly-footer">{{ _("Secure password reset powered by {app}", app=app_name)|upper }}</p>
+  </div>
+</body>
+</html>

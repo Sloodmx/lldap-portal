@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ _("Invitation") }}</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="/static/css/invite.css">
+  {% if turnstile_site_key %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endif %}
+</head>
+<body>
+  <div class="blob-container">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="page-header">
+      {% if logo_url %}<img src="{{ logo_url }}" alt="{{ app_name }}">{% endif %}
+      <h1 class="server-title">
+        {% if state == "form" %}{{ _("Create your account") }}{% elif state == "verify" %}{{ _("Check your email") }}{% elif state == "done" %}{{ _("Welcome") }}{% elif title %}{{ title }}{% else %}{{ _("Invalid invitation") }}{% endif %}
+      </h1>
+    </div>
+
+    <div class="card">
+      <div class="card-body{% if state in ['done', 'invalid'] %} is-centered{% endif %}">
+
+        {% if state == "form" %}
+          {% if error %}
+          <div class="error-box" role="alert"><p>{{ error }}</p></div>
+          {% endif %}
+
+          <form method="POST" action="{{ action }}">
+            <div class="field">
+              <label class="jelly-label" for="username">{{ _("Username") }}</label>
+              <input class="jelly-input" type="text" id="username" name="username"
+                     value="{{ username }}" minlength="3" maxlength="32"
+                     pattern="[A-Za-z0-9][A-Za-z0-9._\-]{2,31}" autocomplete="username" required autofocus>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="password">{{ _("Password") }}</label>
+              <input class="jelly-input" type="password" id="password" name="password"
+                     minlength="10" maxlength="256" autocomplete="new-password" required>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="confirm">{{ _("Confirm password") }}</label>
+              <input class="jelly-input" type="password" id="confirm" name="confirm"
+                     minlength="10" maxlength="256" autocomplete="new-password" required>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="email">{{ _("Email address") }}</label>
+              <input class="jelly-input" type="email" id="email" name="email"
+                     value="{{ email }}" maxlength="254" autocomplete="email" required>
+            </div>
+            <div class="info-box">
+              {{ _("Username: 3 to 32 characters")|safe }}<br>
+              {{ _("Password: at least <strong>10 characters</strong>")|safe }}<br>
+              {{ _("A confirmation code will be sent to the address you enter.") }}
+            </div>
+            {% if turnstile_site_key %}
+            <div class="turnstile-wrap">
+              <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"
+                   data-theme="dark" data-size="flexible" data-language="{{ lang }}"></div>
+            </div>
+            {% endif %}
+            <button type="submit" class="jelly-btn">{{ _("Create my account") }}</button>
+          </form>
+
+        {% elif state == "verify" %}
+          {% if info %}
+          <div class="info-box"><p>{{ info }}</p></div>
+          {% endif %}
+          {% if error %}
+          <div class="error-box" role="alert"><p>{{ error }}</p></div>
+          {% endif %}
+
+          <p class="body-text"><!--email_off-->{{ _("A 6-digit code was sent to <strong>{email}</strong>. It expires in 10 minutes.", email=email|e)|safe }}<!--/email_off--></p>
+
+          <form method="POST" action="{{ url_for('verify_code') }}">
+            <div class="field">
+              <label class="jelly-label" for="code">{{ _("Verification code") }}</label>
+              <input class="jelly-input" type="text" id="code" name="code"
+                     inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+                     autocomplete="one-time-code" required autofocus>
+            </div>
+            <button type="submit" class="jelly-btn">{{ _("Verify") }}</button>
+          </form>
+
+          <form method="POST" action="{{ url_for('resend_code') }}" class="resend-form">
+            <button type="submit" class="jelly-btn">{{ _("Resend code") }}</button>
+          </form>
+
+        {% elif state == "done" %}
+          <div class="icon-wrap" aria-hidden="true">
+            <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+          </div>
+          <h2>{{ _("You're all set") }}</h2>
+          <p class="body-text">{{ _("Your account <strong>{username}</strong> has been created. You can now sign in with your username and password.", username=username|e)|safe }}</p>
+          <p class="back-link">{% if login_url %}<a href="{{ login_url }}">{{ _("← Back to sign-in") }}</a>{% endif %}</p>
+
+        {% elif state == "invalid" and error %}
+          <div class="error-box" role="alert"><p>{{ error }}</p></div>
+          {% if show_config_hint %}
+          <p class="body-text">{{ _("Check that the folder <code>./data</code> exists and belongs to the right user:")|safe }}</p>
+          <pre><code>sudo mkdir -p ./data
+sudo chown -R {{ uid }}:{{ gid }} ./data
+docker compose restart</code></pre>
+          {% endif %}
+
+        {% else %}
+          <h2>{{ _("This invitation is no longer valid") }}</h2>
+          <p class="body-text">{{ _("It has expired, was revoked, has used all its uses, or the process has ended. Ask for a new invitation.") }}</p>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <p class="jelly-footer">{{ _("Invitation powered by {app}", app=app_name)|upper }}</p>
+  </div>
+</body>
+</html>
