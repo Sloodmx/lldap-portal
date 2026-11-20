@@ -1,10 +1,4 @@
-"""Traductions françaises supplémentaires (fusionnées dans i18n.FR_STRINGS).
-
-Chaque clé est le texte anglais exact utilisé dans les gabarits ou le code.
-"""
-
 FR_EXTRA = {
-    # Navigation et titres d'administration
     "Invitation administration": "Administration des invitations",
     "Configuration sections": "Sections de la configuration",
     "Configuration status": "État de la configuration",
@@ -19,7 +13,6 @@ FR_EXTRA = {
     "Minimum 10 characters, with an uppercase letter, a digit and a special character.": "10 caractères minimum, avec une majuscule, un chiffre et un caractère spécial.",
     "No administrator password is set yet. Choose one now: it will be stored in the configuration file as a hash (never in clear text) and will not depend on any environment variable.": "Aucun mot de passe administrateur n'est encore défini. Choisis-en un maintenant : il sera enregistré dans le fichier de configuration sous forme de condensat (jamais en clair) et ne dépendra d'aucune variable d'environnement.",
 
-    # Onglets et sections
     "General": "Général",
     "Email (SMTP)": "Courriel (SMTP)",
     "LDAP directory": "Annuaire LLDAP",
@@ -45,7 +38,6 @@ FR_EXTRA = {
     "Save configuration": "Enregistrer la configuration",
     "Log out": "Se déconnecter",
 
-    # Configuration : champs
     "Service name": "Nom du service",
     "Public URL": "URL publique",
     "Logo URL": "URL du logo",
@@ -89,7 +81,6 @@ FR_EXTRA = {
     "Invitation roles": "Rôles d'invitation",
     "Language of all pages and emails. Set by the administrator for everyone.": "Langue de toutes les pages et de tous les courriels. Choisie par l'administrateur pour tout le monde.",
 
-    # Textes d'aide des réglages
     "Used to build invitation links. Optional: leave empty for local access (http://localhost:8080 or http://<ip>:8080); invitation links will then use the address the visitor used.": "Sert à construire les liens d'invitation. Facultatif : laisser vide pour un accès local (http://localhost:8080 ou http://<ip>:8080) ; les liens d'invitation reprendront alors l'adresse utilisée par le visiteur.",
     "Optional. Image shown at the top of the pages. Leave empty for no logo.": "Facultatif. Image affichée en haut des pages. Laisser vide pour ne pas afficher de logo.",
     "Networks allowed to report the visitor's real address (Cloudflare, reverse proxy).": "Réseaux autorisés à annoncer l'adresse réelle du visiteur (Cloudflare, reverse proxy).",
@@ -118,7 +109,6 @@ FR_EXTRA = {
     "No invitation.": "Aucune invitation.",
     "Roles granted automatically": "Rôles à attribuer automatiquement",
 
-    # Divers
     "Yes": "Oui",
     "No": "Non",
     "Active": "active",
@@ -198,7 +188,6 @@ FR_EXTRA = {
     "Service unavailable": "Service indisponible",
     "Invalid email address.": "Adresse courriel invalide.",
     "Invalid display name: 1 to 80 characters.": "Nom affiché invalide : 1 à 80 caractères.",
-    # Couleur d'accent
     "Accent colour": "Couleur d'accent",
     "Colour of buttons, links and focus outlines on all pages and in the administration.": "Couleur des boutons, liens et contours de focus, sur toutes les pages et dans l'administration.",
     "Invalid colour: use the form #rrggbb.": "Couleur invalide : utilise la forme #rrggbb.",
@@ -215,7 +204,6 @@ FR_EXTRA = {
     "Invalid values.": "Valeurs invalides.",
     "Button outline colour": "Couleur du contour des boutons",
     "Outline of the menu, tab and add buttons when they are not hovered.": "Contour du menu, des onglets et des boutons d'ajout quand la souris n'est pas dessus.",
-    # Contenu des courriels
     "Email content": "Contenu des courriels",
     "Leave a text empty to use the standard wording. Variables: {name} (user), {app} (service name), {code} (verification code), {url} (reset link).": "Laisse un texte vide pour garder la formulation standard. Variables : {name} (utilisateur), {app} (nom du service), {code} (code de vérification), {url} (lien de réinitialisation).",
     "Verification code email: subject": "Courriel de code : objet",
