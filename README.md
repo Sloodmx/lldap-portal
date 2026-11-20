@@ -18,7 +18,7 @@ TZ=
 LLDAP_VOLUME=
 ```
 
-`LLDAP_VOLUME` is the host folder under which the portal stores its data (`${LLDAP_VOLUME}/ldap-invite/data`).
+`LLDAP_VOLUME` is the host folder under which the portal stores its data (`${LLDAP_VOLUME}`).
 
 ### 2. Docker Compose
 
@@ -55,6 +55,7 @@ docker compose up -d --build
 ### 3. First visit
 
 Open `http://<host>:<port>/admin`:
+/admin is only accessible in local `http://<host>:<port>`
 
 1. Create the administrator account (username and password, 12 characters minimum). There is no admin password to put in the compose file.
 2. Open the **Configuration** tab and fill in SMTP and LDAP/LLDAP settings, then save.
