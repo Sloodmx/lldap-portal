@@ -23,14 +23,8 @@ LLDAP_VOLUME=
 ### 2. Docker Compose
 
 ```yaml
-services:
   lldap-portal:
-    build:
-      context: ./lldap-portal
-      dockerfile: Dockerfile
-      args:
-        APP_UID: 1000
-        APP_GID: 1000
+    image: ghcr.io/sloodmx/lldap-portal:latest
     container_name: lldap-portal
     restart: unless-stopped
     environment:
@@ -39,7 +33,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - :/app/data
+      - ${LLDAP_VOLUME}:/app/data
     healthcheck:
       test: ["CMD", "python", "-c",
              "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/healthz', timeout=2)"]
@@ -51,7 +45,7 @@ services:
       driver: json-file
       options:
         max-size: "10m"
-        max-file: "3"
+        max-file: "3"  
 ```
 
 ```bash
