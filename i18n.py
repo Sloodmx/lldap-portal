@@ -1,41 +1,27 @@
-"""Interface bilingue : anglais (par défaut) et français.
-
-La langue est choisie par l'administrateur (réglage « default_lang ») et
-s'applique à toutes les pages et à tous les courriels. Les visiteurs ne
-peuvent pas la changer.
-
-Le texte source est l'anglais. FR_STRINGS associe chaque texte anglais à sa
-traduction française ; un texte absent du dictionnaire reste en anglais.
-"""
-
 SUPPORTED_LANGS = ("en", "fr")
 
 _default_lang = "en"
 
 
 def set_default_language(code: str):
-    """Appelé à chaque changement de configuration."""
     global _default_lang
     _default_lang = code if code in SUPPORTED_LANGS else "en"
 
 
 def get_lang() -> str:
-    """Langue d'affichage : toujours celle choisie par l'administrateur."""
     return _default_lang
 
 
 def t(text: str, lang: str = None, **kwargs) -> str:
-    """Texte traduit. kwargs remplacent les champs {nom} du texte."""
     lang = lang if lang in SUPPORTED_LANGS else get_lang()
     if lang == "fr":
         text = FR_STRINGS.get(text, text)
     return text.format(**kwargs) if kwargs else text
 
 
-from i18n_fr import FR_EXTRA as _FR_EXTRA  # noqa: E402  (chargé après FR_STRINGS)
+from i18n_fr import FR_EXTRA as _FR_EXTRA  
 
 FR_STRINGS = {
-    # ---- Généralités et navigation ----
     "LLDAP Portal": "Portail LLDAP",
     "Language": "Langue",
     "Invitations": "Invitations",
@@ -67,7 +53,6 @@ FR_STRINGS = {
     "Expired": "expirée",
     "Used up": "épuisée",
 
-    # ---- Inscription (invite.html) ----
     "Create your account": "Crée ton compte",
     "Check your email": "Vérifie ton courriel",
     "Welcome": "Bienvenue",
@@ -123,7 +108,6 @@ FR_STRINGS = {
     "Too many requests. Try again later.": "Trop de demandes. Réessaie plus tard.",
     "Too many attempts. Try again later.": "Trop de tentatives. Réessaie plus tard.",
 
-    # ---- Mot de passe oublié (forgot / forgot_sent / reset) ----
     "Forgot your password?": "Mot de passe oublié ?",
     "Enter your email address or username and we will send you a link to reset your {app} password.": "Entre ton adresse courriel ou ton nom d'utilisateur et on t'enverra un lien pour réinitialiser ton mot de passe {app}.",
     "Send reset link": "Envoyer le lien de réinitialisation",
@@ -153,7 +137,6 @@ FR_STRINGS = {
     "Administration": "Administration",
     "Administration de {app}": "Administration de {app}",
 
-    # ---- Courriels ----
     "[{app}] Verification code": "[{app}] Code de vérification",
     "Hello <strong style=\"color:{tcolor};\">{name}</strong>, here is your verification code for <span style=\"color:{tcolor};\">{app}</span>:": "Bonjour <strong style=\"color:{tcolor};\">{name}</strong>, voici ton code de vérification pour <span style=\"color:{tcolor};\">{app}</span> :",
     "This code is valid for <strong>10 minutes</strong>. If you did not request this account, you can ignore this email.": "Ce code est valide <strong>10 minutes</strong>. Si tu n'as pas demandé la création de ce compte, ignore ce courriel.",
@@ -169,7 +152,6 @@ FR_STRINGS = {
     "[{app}] SMTP configuration test": "[{app}] Test de configuration SMTP",
     "This is a test email sent from the configuration page of {app}.\n\nIf you receive this message, the SMTP settings are correct.": "Ceci est un courriel de test envoyé depuis la page de configuration de {app}.\n\nSi tu reçois ce message, les réglages SMTP sont bons.",
 
-    # ---- Diagnostic SMTP ----
     "SMTP is not configured (see Configuration).": "SMTP non configuré (voir la configuration).",
     "Authentication refused without encryption: choose STARTTLS or SSL.": "Authentification refusée sans chiffrement : choisis STARTTLS ou SSL.",
     "Temporary authentication failure on the server side: try again, and check that the account is not locked.": "Échec d'authentification temporaire côté serveur : réessaie, et vérifie que le compte n'est pas verrouillé.",
@@ -213,7 +195,6 @@ FR_STRINGS = {
     "SMTP settings used for this test (the ones actually applied, not necessarily the form above):": "Réglages SMTP utilisés pour ce test (ce sont ceux qui ont été appliqués, pas forcément ceux du formulaire ci-dessous) :",
     "The full settings (host, port, security, user, password) are in the container logs; no secret is written there.": "Le détail complet des réglages (hôte, port, sécurité, utilisateur, mot de passe) est repris dans les journaux du conteneur ; aucun secret n'y est écrit.",
 
-    # ---- Réglages : validation ----
     "Invalid numeric value: {field}.": "Valeur numérique invalide : {field}.",
     "Value out of range: {field}.": "Valeur hors limites : {field}.",
     "Invalid account name: {field}.": "Identifiant de compte invalide : {field}.",
@@ -239,12 +220,10 @@ FR_STRINGS = {
     "Choose a language.": "Choisis une langue.",
     "Language saved.": "Langue enregistrée.",
 
-    # ---- Journal / diagnostic données ----
     "Cannot write to the data folder ({path}). The container does not have write permission. On the host, run “sudo chown -R {uid}:{gid} ./data”, then restart the container (or adjust APP_UID/APP_GID and the “user:” line in the compose file).": "Impossible d'enregistrer dans le dossier de données ({path}). Le conteneur n'a pas les droits d'écriture. Sur l'hôte, exécute « sudo chown -R {uid}:{gid} ./data » puis redémarre le conteneur (ou ajuste APP_UID/APP_GID et la ligne « user: » du compose).",
     "{hint} [detail: {error}]": "{hint} [détail : {error}]",
 }
 
 
-# Fusion des traductions supplémentaires (i18n_fr.py). Les clés de FR_STRINGS priment.
 for _k, _v in _FR_EXTRA.items():
     FR_STRINGS.setdefault(_k, _v)
