@@ -1,3 +1,4 @@
+#test
 import hashlib
 import hmac
 import html
@@ -28,6 +29,14 @@ from flask import (Flask, abort, g, make_response, redirect, render_template,
 from i18n import SUPPORTED_LANGS, get_lang, set_default_language, t
 
 LOGO_URL = ""  # défini par _apply_settings (réglage « logo_url », vide = pas de logo)
+ACCENT_DEFAULT = "#b10008"
+ACCENT_COLOR = ACCENT_DEFAULT  # réglage « accent_color » (couleur des boutons, liens, focus)
+BUTTON_BORDER_DEFAULT = "#2e2e2e"
+BUTTON_BORDER_COLOR = BUTTON_BORDER_DEFAULT  # réglage « button_border_color » (contours au repos)
+HEX_COLOR_RE = re.compile(r"#[0-9a-fA-F]{6}")
+MAIL_TEMPLATES: dict = {}  # textes personnalisés des courriels (vide = texte par défaut)
+MAIL_SUBJECT_MAX = 150
+MAIL_BODY_MAX = 2000
 from flask.sessions import SecureCookieSessionInterface
 from flask_limiter import Limiter
 from ldap3 import Server, Connection
@@ -153,7 +162,7 @@ def _load_secret_key() -> str:
         os.chmod(tmp, 0o600)
         os.replace(tmp, path)
     except OSError as e:
-        logging.getLogger("app").warning("clé de session non persistée : %s", e)
+        logging.getLogger("app").warning("session key not persisted: %s", e)
     return key
 
 
@@ -175,6 +184,18 @@ ENV_DEFAULTS = {
     "app_name": _env("APP_NAME", "LLDAP Portal"),
     "default_lang": _env("DEFAULT_LANG", "en").lower(),
     "logo_url": _env("APP_LOGO_URL"),
+    "accent_color": _env("APP_ACCENT_COLOR", "#b10008"),
+    "button_border_color": _env("APP_BUTTON_BORDER_COLOR", "#2e2e2e"),
+    # Couleurs des courriels. Vide pour l'accent = même couleur que le site.
+    "mail_accent_color": "",
+    "mail_background_color": "#141416",
+    "mail_outer_color": "#121212",
+    "mail_text_color": "#ffffff",
+    # Contenu des courriels. Vide = texte par défaut. Variables : {app}, {name}, {code}, {url}.
+    "mail_code_subject": "",
+    "mail_code_body": "",
+    "mail_reset_subject": "",
+    "mail_reset_body": "",
     "app_url": _env("APP_URL"),
     "invites_path": _env("INVITES_PATH", os.path.join(DATA_DIR, "invites.json")),
     "audit_log_path": _env("AUDIT_LOG_PATH", os.path.join(DATA_DIR, "audit.log")),
@@ -303,7 +324,7 @@ def _parse_networks(value: str) -> list:
         try:
             nets.append(ipaddress.ip_network(part, strict=False))
         except ValueError:
-            logging.getLogger("app").warning("proxy ignoré (format invalide) : %s", part)
+            logging.getLogger("app").warning("proxy ignored (invalid format): %s", part)
     return nets
 
 
@@ -424,7 +445,7 @@ def load_settings() -> dict:
     except FileNotFoundError:
         stored = None
     except (OSError, ValueError) as e:
-        logging.getLogger("app").error("configuration illisible (%s) : %s",
+        logging.getLogger("app").error("settings file unreadable (%s): %s",
                                        SETTINGS_PATH, e)
         stored = None
     if isinstance(stored, dict):
@@ -477,7 +498,8 @@ def _apply_settings(cfg: dict):
     """Recalcule les variables globales utilisées par l'application."""
     global APP_NAME, APP_URL, _APP_NETLOC, _APP_SCHEME, INVITES_PATH, AUDIT_LOG_PATH
     global SMTP_HOST, SMTP_PORT, SMTP_SECURITY, SMTP_USER, SMTP_PASS
-    global SMTP_FROM, SMTP_TIMEOUT, LOGO_URL
+    global SMTP_FROM, SMTP_TIMEOUT, LOGO_URL, ACCENT_COLOR, BUTTON_BORDER_COLOR, MAIL_TEMPLATES
+    global MAIL_COLORS
     global TRUSTED_PROXY_NETS, ADMIN_USERNAME, ADMIN_PASSWORD_HASH
     global LDAP_USE_SSL, LDAP_HOST, LDAP_PORT, LDAP_BASE_DN, LDAP_TIMEOUT
     global LLDAP_HTTP_URL, LLDAP_ADMIN_USERNAME, LDAP_BIND_DN, LDAP_BIND_PASSWORD
@@ -488,6 +510,28 @@ def _apply_settings(cfg: dict):
 
     APP_NAME = cfg["app_name"] or "LLDAP Portal"
     LOGO_URL = (cfg["logo_url"] or "").strip()
+    ACCENT_COLOR = cfg["accent_color"] if HEX_COLOR_RE.fullmatch(cfg["accent_color"] or "") else ACCENT_DEFAULT
+    BUTTON_BORDER_COLOR = (cfg["button_border_color"]
+                           if HEX_COLOR_RE.fullmatch(cfg["button_border_color"] or "")
+                           else BUTTON_BORDER_DEFAULT)
+    _mail_bg = (cfg["mail_background_color"]
+                if HEX_COLOR_RE.fullmatch(cfg["mail_background_color"] or "") else "#141416")
+    MAIL_COLORS = {
+        "accent": (cfg["mail_accent_color"] if HEX_COLOR_RE.fullmatch(cfg["mail_accent_color"] or "")
+                   else ACCENT_COLOR),
+        "background": _mail_bg,
+        # Fond extérieur (autour de la carte), réglage indépendant.
+        "outer": (cfg["mail_outer_color"]
+                  if HEX_COLOR_RE.fullmatch(cfg["mail_outer_color"] or "") else "#121212"),
+        "text": (cfg["mail_text_color"]
+                 if HEX_COLOR_RE.fullmatch(cfg["mail_text_color"] or "") else "#ffffff"),
+    }
+    MAIL_TEMPLATES = {
+        "code_subject": cfg["mail_code_subject"] or "",
+        "code_body": cfg["mail_code_body"] or "",
+        "reset_subject": cfg["mail_reset_subject"] or "",
+        "reset_body": cfg["mail_reset_body"] or "",
+    }
     set_default_language(cfg["default_lang"])
     APP_URL = (cfg["app_url"] or "").rstrip("/")
     _APP_NETLOC = urlparse(APP_URL).netloc
@@ -660,7 +704,7 @@ def _audit_set_file(path: str):
         )
         handler.setFormatter(_audit_fmt)
     except OSError as e:
-        logging.getLogger("app").error("journal d'audit indisponible (%s) : %s", path, e)
+        logging.getLogger("app").error("audit log unavailable (%s): %s", path, e)
     _audit_file_handler = handler
     if handler is not None:
         audit_logger.addHandler(handler)
@@ -680,16 +724,16 @@ def _log_data_dir_state():
     """
     logger = logging.getLogger("app")
     if _data_dir_writable():
-        logger.info("dossier de données inscriptible : %s", DATA_DIR)
+        logger.info("data folder writable: %s", DATA_DIR)
     else:
-        logger.error("dossier de données NON inscriptible : %s — %s",
+        logger.error("data folder NOT writable: %s — %s",
                      DATA_DIR, _data_dir_hint())
-    logger.info("fichiers présents dans %s : %s", DATA_DIR,
+    logger.info("files present in %s: %s", DATA_DIR,
                 ", ".join(label for label, _p, ok in data_files_status() if ok)
-                or "aucun")
-    logger.info("fichiers attendus et encore absents : %s",
+                or "none")
+    logger.info("expected files still missing: %s",
                 ", ".join(label for label, _p, ok in data_files_status() if not ok)
-                or "aucun")
+                or "none")
 
 
 WARNING_RESULTS = {
@@ -722,8 +766,14 @@ def audit(event: str, result: str, ip: str, **fields):
 
 
 def _hash(value: str) -> str:
-    """SHA-256 : pour les codes d'invitation, jetons et codes de vérification."""
+    """SHA-256 : pour les codes d'invitation, jetons et identifiants de clés."""
     return hashlib.sha256(value.encode()).hexdigest()
+
+
+def _code_hash(code: str) -> str:
+    """HMAC avec la clé du serveur : un code à 6 chiffres ne peut pas être retrouvé
+    par force brute si le dossier de données fuit (la clé n'y est pas copiée)."""
+    return hmac.new(app.secret_key.encode(), code.encode(), hashlib.sha256).hexdigest()
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -1091,7 +1141,7 @@ def start_signup(invite: dict, username: str, display_name: str, email: str,
             "display_name": display_name,
             "email": email,
             "password": password,
-            "code_hash": _hash(code),
+            "code_hash": _code_hash(code),
             "code_expires": now + CODE_TTL,
             "last_sent": now,
             "attempts": 0,
@@ -1128,7 +1178,7 @@ def check_code(token: str, code: str) -> str:
         if s["code_expires"] <= now:
             return "expired"
         s["attempts"] += 1
-        if hmac.compare_digest(s["code_hash"], _hash(code)):
+        if hmac.compare_digest(s["code_hash"], _code_hash(code)):
             s["busy"] = True
             return "ok"
         if s["attempts"] >= CODE_MAX_ATTEMPTS:
@@ -1147,7 +1197,7 @@ def set_new_code(token: str, code: str) -> int:
         wait = CODE_RESEND_SECONDS - (now - s["last_sent"])
         if wait > 0:
             return math.ceil(wait)
-        s["code_hash"] = _hash(code)
+        s["code_hash"] = _code_hash(code)
         s["code_expires"] = now + CODE_TTL
         s["last_sent"] = now
         return 0
@@ -1461,6 +1511,23 @@ def _logo_block(safe_app: str) -> str:
             f'style="display:block;max-width:180px;height:auto;"></td></tr>')
 
 
+def _mail_fill(template: str, **values) -> str:
+    """Remplace {nom} par sa valeur. Substitution simple : une accolade inconnue reste telle quelle."""
+    out = template
+    for key, value in values.items():
+        out = out.replace("{" + key + "}", str(value))
+    return out
+
+
+def _mail_html_text(template: str, **values) -> str:
+    """Texte personnalisé pour le HTML : valeurs et texte échappés, retours à la ligne en <br>."""
+    escaped = {k: html.escape(str(v), quote=True) for k, v in values.items()}
+    body = html.escape(template, quote=False)
+    for key, value in escaped.items():
+        body = body.replace("{" + key + "}", value)
+    return body.replace("\n", "<br>")
+
+
 def send_code_email(to_email: str, display_name: str, code: str, lang: str = None):
     to_email = to_email.strip()
     if not EMAIL_RE.fullmatch(to_email) or CONTROL_CHARS_RE.search(to_email):
@@ -1470,23 +1537,29 @@ def send_code_email(to_email: str, display_name: str, code: str, lang: str = Non
     safe_name = html.escape(display_name)
     safe_app = html.escape(APP_NAME)
     safe_code = html.escape(code)
+    custom_body = MAIL_TEMPLATES.get("code_body", "")
+    custom_subject = MAIL_TEMPLATES.get("code_subject", "")
     title = t("Verification code", lang=doc_lang)
-    greeting = t('Hello <strong style="color:#ffffff;">{name}</strong>, here is your verification code for <span style="color:#ffffff;">{app}</span>:',
-                 lang=doc_lang, name=safe_name, app=safe_app)
+    if custom_body:
+        greeting = _mail_html_text(custom_body, name=display_name, app=APP_NAME, code=code)
+    else:
+        greeting = t('Hello <strong style="color:{tcolor};">{name}</strong>, here is your verification code for <span style="color:{tcolor};">{app}</span>:',
+                     lang=doc_lang, name=safe_name, app=safe_app, tcolor=MAIL_COLORS["text"])
     validity = t("This code is valid for <strong>10 minutes</strong>. If you did not request this account, you can ignore this email.", lang=doc_lang)
+    c = MAIL_COLORS
 
     html_body = f"""<!DOCTYPE html>
 <html lang="{doc_lang}">
 <head><meta charset="UTF-8"><title>{title}</title></head>
-<body style="margin:0;padding:0;background-color:#1d1d1d;font-family:'Segoe UI',Arial,sans-serif;color:#ffffff;">
-<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#121212;padding:40px 0;">
+<body style="margin:0;padding:0;background-color:{c['outer']};font-family:'Segoe UI',Arial,sans-serif;color:{c['text']};">
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:{c['outer']};padding:40px 0;">
 <tr><td align="center">
-<table border="0" cellpadding="0" cellspacing="0" width="500" style="background-color:#141416;border:1px solid #2e2e2e;border-radius:12px;">
+<table border="0" cellpadding="0" cellspacing="0" width="500" style="background-color:{c['background']};border:1px solid {c['accent']};border-radius:12px;">
 {_logo_block(safe_app)}
 <tr><td style="padding:10px 40px 30px 40px;">
-<h2 style="color:#ffffff;font-size:20px;font-weight:bold;margin:0 0 15px 0;text-transform:uppercase;letter-spacing:1px;">{title}</h2>
-<p style="color:#a0a0a0;font-size:15px;line-height:1.5;margin:0 0 20px 0;">{greeting}</p>
-<p style="text-align:center;margin:0 0 20px 0;"><span style="background-color:#b10008;border:1px solid #ff1a1a;border-radius:6px;color:#ffffff;display:inline-block;font-family:monospace,Arial,sans-serif;font-size:24px;font-weight:bold;letter-spacing:4px;padding:12px 28px;">{safe_code}</span></p>
+<h2 style="color:{c['text']};font-size:20px;font-weight:bold;margin:0 0 15px 0;text-transform:uppercase;letter-spacing:1px;">{title}</h2>
+<p style="color:{c['text']};font-size:15px;line-height:1.5;margin:0 0 20px 0;">{greeting}</p>
+<p style="text-align:center;margin:0 0 20px 0;"><span style="background-color:{c['accent']};border:1px solid {c['accent']};border-radius:6px;color:{c['text']};display:inline-block;font-family:monospace,Arial,sans-serif;font-size:24px;font-weight:bold;letter-spacing:4px;padding:12px 28px;">{safe_code}</span></p>
 <p style="color:#888888;font-size:13px;line-height:1.5;margin:0 0 15px 0;">{validity}</p>
 </td></tr>
 </table>
@@ -1495,11 +1568,17 @@ def send_code_email(to_email: str, display_name: str, code: str, lang: str = Non
 </body>
 </html>
 """
-    text_body = t("Hello {name},\n\nYour {app} verification code is: {code}\n\nIt is valid for 10 minutes.\n\nIf you did not request an account, you can ignore this email.",
-                  lang=doc_lang, name=display_name, app=APP_NAME, code=code)
+    if custom_body:
+        text_body = _mail_fill(custom_body, name=display_name, app=APP_NAME, code=code)
+    else:
+        text_body = t("Hello {name},\n\nYour {app} verification code is: {code}\n\nIt is valid for 10 minutes.\n\nIf you did not request an account, you can ignore this email.",
+                      lang=doc_lang, name=display_name, app=APP_NAME, code=code)
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = t("[{app}] Verification code", lang=doc_lang, app=APP_NAME)
+    if custom_subject:
+        msg["Subject"] = _mail_fill(custom_subject, app=APP_NAME, name=display_name, code=code)
+    else:
+        msg["Subject"] = t("[{app}] Verification code", lang=doc_lang, app=APP_NAME)
     msg["From"] = f"{APP_NAME} <{SMTP_FROM}>"
     msg["To"] = to_email
     msg.attach(MIMEText(text_body, "plain", "utf-8"))
@@ -1802,27 +1881,33 @@ def send_reset_email(to_email: str, username: str, reset_url: str, lang: str = N
     safe_name = html.escape(username)
     safe_app = html.escape(APP_NAME)
     safe_url = html.escape(reset_url, quote=True)
+    custom_body = MAIL_TEMPLATES.get("reset_body", "")
+    custom_subject = MAIL_TEMPLATES.get("reset_subject", "")
     title = t("Password reset", lang=doc_lang)
-    intro = t('Hello <strong style="color:#ffffff;">{name}</strong>, you asked to reset your {app} password. Click the button below:',
-              lang=doc_lang, name=safe_name, app=safe_app)
+    if custom_body:
+        intro = _mail_html_text(custom_body, name=username, app=APP_NAME, url=reset_url)
+    else:
+        intro = t('Hello <strong style="color:{tcolor};">{name}</strong>, you asked to reset your {app} password. Click the button below:',
+                  lang=doc_lang, name=safe_name, app=safe_app, tcolor=MAIL_COLORS["text"])
     button = t("Reset my password", lang=doc_lang)
     validity = t("This link is valid for <strong>24 hours</strong> and can only be used once. If you did not make this request, you can ignore this email.", lang=doc_lang)
     fallback = t("If the button does not work, copy this link:", lang=doc_lang)
+    c = MAIL_COLORS
 
     html_body = f"""<!DOCTYPE html>
 <html lang="{doc_lang}">
 <head><meta charset="UTF-8"><title>{title}</title></head>
-<body style="margin:0;padding:0;background-color:#272727;font-family:'Segoe UI',Arial,sans-serif;color:#ffffff;">
-<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#272727;padding:40px 0;">
+<body style="margin:0;padding:0;background-color:{c['outer']};font-family:'Segoe UI',Arial,sans-serif;color:{c['text']};">
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:{c['outer']};padding:40px 0;">
 <tr><td align="center">
-<table border="0" cellpadding="0" cellspacing="0" width="500" style="background-color:#161616;border:1px solid #4a0000;border-radius:12px;">
+<table border="0" cellpadding="0" cellspacing="0" width="500" style="background-color:{c['background']};border:1px solid {c['accent']};border-radius:12px;">
 {_logo_block(safe_app)}
 <tr><td style="padding:10px 40px 30px 40px;">
-<h2 style="color:#ffffff;font-size:20px;font-weight:bold;margin:0 0 15px 0;text-transform:uppercase;letter-spacing:1px;">{title}</h2>
-<p style="color:#a0a0a0;font-size:15px;line-height:1.5;margin:0 0 20px 0;">{intro}</p>
-<p style="text-align:center;margin:0 0 20px 0;"><a href="{safe_url}" target="_blank" style="background-color:#b40000;border:1px solid #ff1a1a;border-radius:6px;color:#ffffff;display:inline-block;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;padding:12px 28px;text-decoration:none;">{button}</a></p>
+<h2 style="color:{c['text']};font-size:20px;font-weight:bold;margin:0 0 15px 0;text-transform:uppercase;letter-spacing:1px;">{title}</h2>
+<p style="color:{c['text']};font-size:15px;line-height:1.5;margin:0 0 20px 0;">{intro}</p>
+<p style="text-align:center;margin:0 0 20px 0;"><a href="{safe_url}" target="_blank" style="background-color:{c['accent']};border:1px solid {c['accent']};border-radius:6px;color:{c['text']};display:inline-block;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;padding:12px 28px;text-decoration:none;">{button}</a></p>
 <p style="color:#888888;font-size:13px;line-height:1.5;margin:0 0 15px 0;">{validity}</p>
-<p style="color:#555555;font-size:11px;margin:0;word-break:break-all;">{fallback} <a href="{safe_url}" style="color:#cc0000;">{safe_url}</a></p>
+<p style="color:#555555;font-size:11px;margin:0;word-break:break-all;">{fallback} <a href="{safe_url}" style="color:{c['accent']};">{safe_url}</a></p>
 </td></tr>
 </table>
 </td></tr>
@@ -1830,10 +1915,16 @@ def send_reset_email(to_email: str, username: str, reset_url: str, lang: str = N
 </body>
 </html>
 """
-    text_body = t("Hello {name},\n\nReset your {app} password by clicking this link:\n{url}\n\nThis link is valid for 24 hours and can only be used once.\n\nIf you did not make this request, you can ignore this email.",
-                  lang=doc_lang, name=username, app=APP_NAME, url=reset_url)
+    if custom_body:
+        text_body = _mail_fill(custom_body, name=username, app=APP_NAME, url=reset_url)
+    else:
+        text_body = t("Hello {name},\n\nReset your {app} password by clicking this link:\n{url}\n\nThis link is valid for 24 hours and can only be used once.\n\nIf you did not make this request, you can ignore this email.",
+                      lang=doc_lang, name=username, app=APP_NAME, url=reset_url)
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = t("[{app}] Reset your password", lang=doc_lang, app=APP_NAME)
+    if custom_subject:
+        msg["Subject"] = _mail_fill(custom_subject, app=APP_NAME, name=username)
+    else:
+        msg["Subject"] = t("[{app}] Reset your password", lang=doc_lang, app=APP_NAME)
     msg["From"] = f"{APP_NAME} <{SMTP_FROM or SMTP_USER}>"
     msg["To"] = to_email
     msg.attach(MIMEText(text_body, "plain", "utf-8"))
@@ -1914,7 +2005,8 @@ def forgot_password_submit():
 
     threading.Thread(target=_process_reset, args=(query_input, ip), daemon=True).start()
     return make_response(render_template(
-        "forgot_sent.html", app_name=APP_NAME, email=query_input, login_url=LOGIN_URL))
+        "forgot_sent.html", app_name=APP_NAME, email=query_input, login_url=LOGIN_URL,
+        cooldown_minutes=max(1, math.ceil(RESET_COOLDOWN / 60))))
 
 
 @app.route("/reset/<token>", methods=["GET", "POST"])
@@ -2137,8 +2229,16 @@ def resend_code():
     return _verify_page(s, info=t("A new code has been sent."))
 
 
+MAIL_BODY_FIELDS = ("mail_code_body", "mail_reset_body")
+MAIL_SUBJECT_FIELDS = ("mail_code_subject", "mail_reset_subject")
+# Textes des courriels : les retours à la ligne sont conservés, les autres caractères de contrôle non.
+CONTROL_NO_NL_RE = re.compile(r"[\x00-\x09\x0b-\x1f\x7f]")
+
 SETTINGS_TEXT_FIELDS = (
-    "app_name", "app_url", "logo_url", "default_lang", "trusted_proxies",
+    "app_name", "app_url", "logo_url", "default_lang", "trusted_proxies", "accent_color",
+    "button_border_color", "mail_accent_color", "mail_background_color", "mail_outer_color",
+    "mail_text_color",
+    "mail_code_subject", "mail_reset_subject",
     "smtp_host", "smtp_user", "smtp_from",
     "lldap_url", "lldap_base_dn", "lldap_admin_username", "lldap_http_url",
     "reset_bind_user", "reset_allowed_groups", "login_url",
@@ -2337,6 +2437,11 @@ def admin_login():
 
     username = (request.form.get("username") or "").strip().lower()
     password = request.form.get("password", "")
+    if len(password) > MAX_PASSWORD_LEN:
+        audit("admin_login", "failed", ip, username=username, reason="too_long")
+        return _admin_login_page(
+            error="Invalid username or password.",
+            username=username, status=401)
     user_ok = hmac.compare_digest(username.encode(), ADMIN_USERNAME.encode())
     try:
         pass_ok = check_password_hash(ADMIN_PASSWORD_HASH, password)
@@ -2396,8 +2501,37 @@ def admin_save_settings():
             return _admin_settings_page(cfg, error=t("Invalid numeric value: {field}.", field=key),
                                         status=400)
         if not lo <= value <= hi:
-            return _admin_settings_page(cfg, error=f"Valeur hors limites : {key}.", status=400)
+            return _admin_settings_page(cfg, error=t("Value out of range: {field}.", field=key),
+                                        status=400)
         cfg[key] = value
+
+    for key, default in (("accent_color", ACCENT_DEFAULT),
+                         ("button_border_color", BUTTON_BORDER_DEFAULT),
+                         ("mail_background_color", "#141416"),
+                         ("mail_outer_color", "#121212"),
+                         ("mail_text_color", "#ffffff")):
+        if not cfg[key]:
+            cfg[key] = default
+        elif not HEX_COLOR_RE.fullmatch(cfg[key]):
+            return _admin_settings_page(cfg, error=t("Invalid colour: use the form #rrggbb."),
+                                        status=400)
+    # Couleur d'accent des courriels : vide = même couleur que le site.
+    if cfg["mail_accent_color"] and not HEX_COLOR_RE.fullmatch(cfg["mail_accent_color"]):
+        return _admin_settings_page(cfg, error=t("Invalid colour: use the form #rrggbb."),
+                                    status=400)
+
+    for key in MAIL_BODY_FIELDS:
+        if key in form:
+            text = (form.get(key) or "").replace("\r\n", "\n").replace("\r", "\n")
+            cfg[key] = CONTROL_NO_NL_RE.sub(" ", text).strip()
+    for key in MAIL_SUBJECT_FIELDS:
+        if len(cfg[key] or "") > MAIL_SUBJECT_MAX:
+            return _admin_settings_page(cfg, error=t("Email subject too long (max {n} characters)."
+                                                     , n=MAIL_SUBJECT_MAX), status=400)
+    for key in MAIL_BODY_FIELDS:
+        if len(cfg[key] or "") > MAIL_BODY_MAX:
+            return _admin_settings_page(cfg, error=t("Email text too long (max {n} characters)."
+                                                     , n=MAIL_BODY_MAX), status=400)
 
     security = (form.get("smtp_security") or "").strip()
     if security in {k for k, _ in SMTP_SECURITY_CHOICES}:
@@ -2487,6 +2621,25 @@ def admin_save_settings():
                             tab=_requested_tab()))
 
 
+@app.route("/theme.css", methods=["GET"])
+def theme_css():
+    """Couleurs configurables. Servi en fichier externe : la CSP interdit les styles inline."""
+    r, g, b = (int(ACCENT_COLOR[i:i + 2], 16) for i in (1, 3, 5))
+    hover = "#%02x%02x%02x" % tuple(int(c * 0.7) for c in (r, g, b))
+    bright = "#%02x%02x%02x" % tuple(int(c + (255 - c) * 0.3) for c in (r, g, b))
+    css = (":root{"
+           f"--accent:{ACCENT_COLOR};--accent-hover:{hover};--accent-bright:{bright};"
+           f"--accent-soft:rgba({r},{g},{b},.14);--accent-glow:rgba({r},{g},{b},.08);"
+           f"--accent-glow-strong:rgba({r},{g},{b},.35);"
+           f"--focus-ring:0 0 0 2px {ACCENT_COLOR};"
+           f"--button-border:{BUTTON_BORDER_COLOR};"
+           "}")
+    resp = make_response(css)
+    resp.headers["Content-Type"] = "text/css; charset=utf-8"
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
 @app.route("/admin/settings/test-email", methods=["POST"])
 @limiter.limit("10 per hour")
 def admin_test_email():
@@ -2506,7 +2659,7 @@ def admin_test_email():
         audit("settings", "mail_failed", ip, error=type(e).__name__,
               detail=_smtp_error_detail(e, lang="en"))
         return _admin_settings_page(
-            error=f"Envoi impossible ({type(e).__name__}). {detail}",
+            error=t("Sending failed ({error}). {detail}", error=type(e).__name__, detail=detail),
             smtp_diagnostic=detail,
             status=502)
     audit("settings", "test_mail_sent", ip)
@@ -2529,7 +2682,7 @@ def admin_create_invite():
         uses = int(request.form.get("uses", "1"))
         days = int(request.form.get("days", "7"))
     except ValueError:
-        return _admin_dashboard(error="Valeurs invalides.", status=400)
+        return _admin_dashboard(error=t("Invalid values."), status=400)
     if not (1 <= uses <= 100 and 1 <= days <= 365):
         return _admin_dashboard(error=t("Uses: 1 to 100. Duration: 1 to 365 days."),
                                 status=400)
@@ -2589,7 +2742,7 @@ def security_headers(resp):
 def data_dir_handler(e):
     """Problème de droits sur le dossier de données : message clair, pas un 500 nu."""
     audit("data_dir", "error", get_client_ip(), path=request.path)
-    logging.getLogger("app").error("dossier de données : %s", e)
+    logging.getLogger("app").error("data folder: %s", e)
     admin_ctx = request.path.startswith("/admin")
     body = render_template(
         "invite.html", app_name=APP_NAME, state="invalid",

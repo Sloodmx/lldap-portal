@@ -18,13 +18,19 @@ TZ=
 LLDAP_VOLUME=
 ```
 
-`LLDAP_VOLUME` is the host folder under which the portal stores its data (`${LLDAP_VOLUME}`).
+`LLDAP_VOLUME` is the host folder under which the portal stores its data (`${LLDAP_VOLUME}/ldap-invite/data`).
 
 ### 2. Docker Compose
 
 ```yaml
+services:
   lldap-portal:
-    image: ghcr.io/sloodmx/lldap-portal:latest
+    build:
+      context: ./lldap-portal
+      dockerfile: Dockerfile
+      args:
+        APP_UID: 1000
+        APP_GID: 1000
     container_name: lldap-portal
     restart: unless-stopped
     environment:
@@ -33,7 +39,7 @@ LLDAP_VOLUME=
     ports:
       - "5000:5000"
     volumes:
-      - ${LLDAP_VOLUME}:/app/data
+      - :/app/data
     healthcheck:
       test: ["CMD", "python", "-c",
              "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/healthz', timeout=2)"]
@@ -45,17 +51,25 @@ LLDAP_VOLUME=
       driver: json-file
       options:
         max-size: "10m"
-        max-file: "3"  
+        max-file: "3"
 ```
 
 ```bash
 docker compose up -d --build
 ```
 
-### 3. First visit
+### 3. Permissions on the data folder
+
+The container starts as root, sets the data folder to the owner `APP_UID:APP_GID` (1000:1000 by default), then drops privileges before starting Gunicorn.
+
+If you run the container without root (for example with `user: "1000:1000"`, or on Kubernetes), fix the ownership yourself on the host first:
+
+
+Use `id -u` and `id -g` to find the right values for your system, and match them with `APP_UID` and `APP_GID`.
+
+### 4. First visit
 
 Open `http://<host>:<port>/admin`:
-/admin is only accessible in local `http://<host>:<port>`
 
 1. Create the administrator account (username and password, 12 characters minimum). There is no admin password to put in the compose file.
 2. Open the **Configuration** tab and fill in SMTP and LDAP/LLDAP settings, then save.

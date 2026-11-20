@@ -8,6 +8,7 @@
   <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
   <link rel="stylesheet" href="/static/css/app.css">
   <link rel="stylesheet" href="/static/css/invite.css">
+  <link rel="stylesheet" href="/theme.css">
 </head>
 <body>
   <div class="blob-container">
@@ -163,6 +164,18 @@
               <span class="label-hint">{{ _("Language of all pages and emails. Set by the administrator for everyone.") }}</span>
             </div>
             <div class="field">
+              <label class="jelly-label" for="accent_color">{{ _("Accent colour") }}</label>
+              <input type="color" id="accent_color" name="accent_color"
+                     value="{{ values.accent_color or '#b10008' }}" style="height:44px;width:120px;padding:4px;cursor:pointer;">
+              <span class="label-hint">{{ _("Colour of buttons, links and focus outlines on all pages and in the administration.") }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="button_border_color">{{ _("Button outline colour") }}</label>
+              <input type="color" id="button_border_color" name="button_border_color"
+                     value="{{ values.button_border_color or '#2e2e2e' }}" style="height:44px;width:120px;padding:4px;cursor:pointer;">
+              <span class="label-hint">{{ _("Outline of the menu, tab and add buttons when they are not hovered.") }}</span>
+            </div>
+            <div class="field">
               <label class="jelly-label" for="trusted_proxies">{{ _("Trusted proxies (CIDR)") }}</label>
               <input class="jelly-input" type="text" id="trusted_proxies" name="trusted_proxies"
                      maxlength="400" placeholder="10.0.0.0/8, 172.16.0.0/12"
@@ -212,6 +225,55 @@
               <label class="jelly-label" for="smtp_timeout">{{ _("Timeout (s)") }}</label>
               <input class="jelly-input" type="number" id="smtp_timeout" name="smtp_timeout"
                      min="1" max="120" value="{{ values.smtp_timeout }}">
+            </div>
+
+            <h2 class="section-title" id="sec-mail">{{ _("Email colours") }}</h2>
+            <div class="field">
+              <label class="jelly-label" for="mail_accent_color">{{ _("Email accent colour") }}</label>
+              <input type="color" id="mail_accent_color" name="mail_accent_color"
+                     value="{{ values.mail_accent_color or values.accent_color or '#b10008' }}" style="height:44px;width:120px;padding:4px;cursor:pointer;">
+              <span class="label-hint">{{ _("Button, verification code and border of the emails. Starts from the site accent colour.") }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="mail_background_color">{{ _("Email background colour") }}</label>
+              <input type="color" id="mail_background_color" name="mail_background_color"
+                     value="{{ values.mail_background_color or '#141416' }}" style="height:44px;width:120px;padding:4px;cursor:pointer;">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="mail_outer_color">{{ _("Email outer background colour") }}</label>
+              <input type="color" id="mail_outer_color" name="mail_outer_color"
+                     value="{{ values.mail_outer_color or '#121212' }}" style="height:44px;width:120px;padding:4px;cursor:pointer;">
+              <span class="label-hint">{{ _("Background around the email card. Independent from the card colour.") }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="mail_text_color">{{ _("Email text colour") }}</label>
+              <input type="color" id="mail_text_color" name="mail_text_color"
+                     value="{{ values.mail_text_color or '#ffffff' }}" style="height:44px;width:120px;padding:4px;cursor:pointer;">
+            </div>
+
+            <h2 class="section-title" id="sec-mail-content">{{ _("Email content") }}</h2>
+            <p class="label-hint">{{ _("Leave a text empty to use the standard wording. Variables: {name} (user), {app} (service name), {code} (verification code), {url} (reset link).") }}</p>
+            <div class="field">
+              <label class="jelly-label" for="mail_code_subject">{{ _("Verification code email: subject") }}</label>
+              <input class="jelly-input" type="text" id="mail_code_subject" name="mail_code_subject"
+                     maxlength="150" placeholder="[{app}] Verification code" value="{{ values.mail_code_subject }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="mail_code_body">{{ _("Verification code email: text") }}</label>
+              <textarea class="jelly-input" id="mail_code_body" name="mail_code_body" rows="4"
+                        maxlength="2000" placeholder="{{ _('Hello {name}, here is your verification code for {app}:') }}">{{ values.mail_code_body }}</textarea>
+              <span class="label-hint">{{ _("The code is always shown in the email, the validity sentence is kept.") }}</span>
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="mail_reset_subject">{{ _("Password reset email: subject") }}</label>
+              <input class="jelly-input" type="text" id="mail_reset_subject" name="mail_reset_subject"
+                     maxlength="150" placeholder="[{app}] Reset your password" value="{{ values.mail_reset_subject }}">
+            </div>
+            <div class="field">
+              <label class="jelly-label" for="mail_reset_body">{{ _("Password reset email: text") }}</label>
+              <textarea class="jelly-input" id="mail_reset_body" name="mail_reset_body" rows="4"
+                        maxlength="2000" placeholder="{{ _('Hello {name}, you asked to reset your {app} password. Click the button below:') }}">{{ values.mail_reset_body }}</textarea>
+              <span class="label-hint">{{ _("The reset button and the link are always added to the email.") }}</span>
             </div>
             </div>
 

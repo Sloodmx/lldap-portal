@@ -6,6 +6,7 @@
   <title>{{ _("Email sent") }}</title>
   <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
   <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="/theme.css">
 </head>
 <body>
   <div class="blob-container">
@@ -37,7 +38,8 @@
 
         <div class="info-box">
           {{ _("The link is valid for <strong>24 hours</strong> and can only be used once.")|safe }}<br>
-          {{ _("Also check your <strong>spam</strong> folder.")|safe }}
+          {{ _("Also check your <strong>spam</strong> folder.")|safe }}<br>
+          {{ _("You can request a new link once every {minutes} minutes.", minutes=cooldown_minutes) }}
         </div>
 
         <p class="back-link">

@@ -20,7 +20,7 @@ def fix_ownership() -> None:
     try:
         os.makedirs(DATA_DIR, exist_ok=True)
     except OSError as e:
-        print(f"[entrypoint] data folder cannot be created : {e}", file=sys.stderr)
+        print(f"[entrypoint] data folder cannot be created: {e}", file=sys.stderr)
         return
 
     entries = [DATA_DIR] + [
@@ -28,12 +28,12 @@ def fix_ownership() -> None:
     ]
     for path in entries:
         if path != DATA_DIR and os.path.islink(path):
-            print(f"[entrypoint] symbolic link skipped : {path}", file=sys.stderr)
+            print(f"[entrypoint] symbolic link skipped: {path}", file=sys.stderr)
             continue
         try:
             os.chown(path, APP_UID, APP_GID)
         except OSError as e:
-            print(f"[entrypoint] chown skipped on {path} : {e}", file=sys.stderr)
+            print(f"[entrypoint] chown skipped on {path}: {e}", file=sys.stderr)
 
 
 def drop_privileges() -> None:
@@ -48,10 +48,10 @@ def main() -> None:
         try:
             drop_privileges()
         except OSError as e:
-            print(f"[entrypoint] cannot drop privileges : {e}",
+            print(f"[entrypoint] cannot drop privileges: {e}",
                   file=sys.stderr)
     else:
-        print(f"[entrypoint] déjà sans privilèges (uid={os.geteuid()}) : "
+        print(f"[entrypoint] already without privileges (uid={os.geteuid()}): "
               f"permissions of {DATA_DIR} unchanged", file=sys.stderr)
 
     os.execvp(sys.argv[1], sys.argv[1:])

@@ -8,13 +8,15 @@
     --text-muted: #a3a3a3;
     --accent: #b10008;
     --accent-hover: #740000;
-    --accent-soft: rgba(211, 47, 47, .14);
+    --accent-soft: rgba(177, 0, 8, .14);
+    --accent-glow: rgba(177, 0, 8, .08);
+    --accent-glow-strong: rgba(177, 0, 8, .35);
     --link: #a4a4a4;
     --danger-text: #fca5a5;
     --danger-bg: rgba(220, 38, 38, .12);
     --radius: 12px;
     --radius-sm: 8px;
-    --focus-ring: 0 0 0 2px rgb(167 8 8);
+    --focus-ring: 0 0 0 2px #b10008;
     --font: "Rajdhani", "Segoe UI", system-ui, sans-serif;
 }
 
@@ -35,7 +37,7 @@ body {
   justify-content: center;
   padding: 24px 16px;
   background:
-    radial-gradient(900px 500px at 50% -10%, rgba(211, 47, 47, .08), transparent 60%),
+    radial-gradient(900px 500px at 50% -10%, var(--accent-glow), transparent 60%),
     var(--bg);
   color: var(--text);
   font-family: var(--font);
@@ -144,8 +146,8 @@ h2 {
 
 .jelly-input:focus {
   outline: none;
-  border-color: var(--link);
-  box-shadow: var(--link);
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
 }
 
 .jelly-input::placeholder { color: #8f8f8f; }
@@ -356,6 +358,6 @@ code {
 .tab-nav label,
 .role-add-btn {
   background-color: var(--surface-2);
-  border-color: var(--border-strong);
+  border-color: var(--button-border);
   color: var(--text-muted);
 }

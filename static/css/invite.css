@@ -14,7 +14,7 @@
   flex: 1;
   text-align: center;
   padding: .7em 1em;
-  border: 1px solid hsl(0deg 100% 16.27%);
+  border: 1px solid var(--button-border);
   border-radius: .5em;
   background-color: rgba(22,22,22,.85);
   color: #cfcfcf;
@@ -25,12 +25,12 @@
   transition: color .2s ease, border-color .2s ease;
 }
 
-.admin-nav a:hover { color: #ff1a1a; border-color: #ff1a1a; }
+.admin-nav a:hover { color: var(--accent-bright); border-color: var(--accent-bright); }
 
 .admin-nav a.is-current {
   color: #ffffff;
-  border-color: rgb(204,0,0);
-  box-shadow: 0 0 12px rgba(204,0,0,.35);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow-strong);
 }
 
 .label-hint {
@@ -151,7 +151,7 @@ select.jelly-input { appearance: none; }
 .role-add-btn {
   display: inline-block;
   padding: .6em 1.2em;
-  border: 1px solid hsl(0deg 100% 16.27%);
+  border: 1px solid var(--button-border);
   border-radius: .5em;
   background-color: rgba(22,22,22,.85);
   color: #cfcfcf;
@@ -164,7 +164,7 @@ select.jelly-input { appearance: none; }
 }
 
 .role-add-btn::-webkit-details-marker { display: none; }
-.role-add-btn:hover { color: #ff1a1a; border-color: #ff1a1a; }
+.role-add-btn:hover { color: var(--accent-bright); border-color: var(--accent-bright); }
 
 .role-new {
   display: grid;
@@ -194,7 +194,7 @@ select.jelly-input { appearance: none; }
   flex: 1 1 auto;
   text-align: center;
   padding: .6em 1em;
-  border: 1px solid hsl(0deg 100% 16.27%);
+  border: 1px solid var(--button-border);
   border-radius: .5em;
   background-color: rgba(22,22,22,.85);
   color: #cfcfcf;
@@ -205,7 +205,7 @@ select.jelly-input { appearance: none; }
   transition: color .2s ease, border-color .2s ease;
 }
 
-.tab-nav label:hover { color: #ff1a1a; border-color: #ff1a1a; }
+.tab-nav label:hover { color: var(--accent-bright); border-color: var(--accent-bright); }
 
 .tab-panel { display: none; }
 
@@ -220,8 +220,8 @@ select.jelly-input { appearance: none; }
 #tab-admin:checked ~ .tab-nav label[for="tab-admin"],
 #tab-diag:checked ~ .tab-nav label[for="tab-diag"] {
   color: #ffffff;
-  border-color: rgb(204,0,0);
-  box-shadow: 0 0 12px rgba(204,0,0,.35);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow-strong);
 }
 
 #tab-general:focus-visible ~ .tab-nav label[for="tab-general"],
@@ -232,7 +232,7 @@ select.jelly-input { appearance: none; }
 #tab-roles:focus-visible ~ .tab-nav label[for="tab-roles"],
 #tab-admin:focus-visible ~ .tab-nav label[for="tab-admin"],
 #tab-diag:focus-visible ~ .tab-nav label[for="tab-diag"] {
-  outline: 2px solid #ff1a1a;
+  outline: 2px solid var(--accent-bright);
   outline-offset: 2px;
 }
 

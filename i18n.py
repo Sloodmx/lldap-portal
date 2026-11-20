@@ -155,12 +155,12 @@ FR_STRINGS = {
 
     # ---- Courriels ----
     "[{app}] Verification code": "[{app}] Code de vérification",
-    "Hello <strong style=\"color:#ffffff;\">{name}</strong>, here is your verification code for <span style=\"color:#ffffff;\">{app}</span>:": "Bonjour <strong style=\"color:#ffffff;\">{name}</strong>, voici ton code de vérification pour <span style=\"color:#ffffff;\">{app}</span> :",
+    "Hello <strong style=\"color:{tcolor};\">{name}</strong>, here is your verification code for <span style=\"color:{tcolor};\">{app}</span>:": "Bonjour <strong style=\"color:{tcolor};\">{name}</strong>, voici ton code de vérification pour <span style=\"color:{tcolor};\">{app}</span> :",
     "This code is valid for <strong>10 minutes</strong>. If you did not request this account, you can ignore this email.": "Ce code est valide <strong>10 minutes</strong>. Si tu n'as pas demandé la création de ce compte, ignore ce courriel.",
     "Hello {name},\n\nYour {app} verification code is: {code}\n\nIt is valid for 10 minutes.\n\nIf you did not request an account, you can ignore this email.": "Salut {name},\n\nTon code de vérification {app} est : {code}\n\nIl est valide 10 minutes.\n\nSi tu n'as pas demandé de compte, ignore ce courriel.",
     "[{app}] Reset your password": "[{app}] Réinitialisation de ton mot de passe",
     "Password reset": "Réinitialisation de mot de passe",
-    "Hello <strong style=\"color:#ffffff;\">{name}</strong>, you asked to reset your {app} password. Click the button below:": "Salut <strong style=\"color:#ffffff;\">{name}</strong>, tu as demandé à réinitialiser ton mot de passe {app}. Clique sur le bouton ci-dessous :",
+    "Hello <strong style=\"color:{tcolor};\">{name}</strong>, you asked to reset your {app} password. Click the button below:": "Salut <strong style=\"color:{tcolor};\">{name}</strong>, tu as demandé à réinitialiser ton mot de passe {app}. Clique sur le bouton ci-dessous :",
     "Reset my password": "Réinitialiser mon mot de passe",
     "This link is valid for <strong>24 hours</strong> and can only be used once. If you did not make this request, you can ignore this email.": "Ce lien est valide <strong>24 heures</strong> et ne peut être utilisé qu'une seule fois. Si tu n'as pas fait cette demande, ignore ce courriel.",
     "If the button does not work, copy this link:": "Si le bouton ne fonctionne pas, copie ce lien :",
