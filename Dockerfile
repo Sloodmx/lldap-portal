@@ -17,8 +17,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-# Data volume: configuration (settings.json), invitations, audit log and session key.
-# The only folder to mount from the host.
 RUN mkdir -p /app/data && chown appuser:appuser /app/data
 
 VOLUME ["/app/data"]
