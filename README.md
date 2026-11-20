@@ -25,12 +25,7 @@ LLDAP_VOLUME=
 ```yaml
 services:
   lldap-portal:
-    build:
-      context: ./lldap-portal
-      dockerfile: Dockerfile
-      args:
-        APP_UID: 1000
-        APP_GID: 1000
+    image: ghcr.io/sloodmx/lldap-portal:latest
     container_name: lldap-portal
     restart: unless-stopped
     environment:
@@ -39,7 +34,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - :/app/data
+      - ${LLDAP_VOLUME}:/app/data
     healthcheck:
       test: ["CMD", "python", "-c",
              "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/healthz', timeout=2)"]
@@ -51,23 +46,14 @@ services:
       driver: json-file
       options:
         max-size: "10m"
-        max-file: "3"
+        max-file: "3"  
 ```
 
 ```bash
 docker compose up -d --build
 ```
 
-### 3. Permissions on the data folder
-
-The container starts as root, sets the data folder to the owner `APP_UID:APP_GID` (1000:1000 by default), then drops privileges before starting Gunicorn.
-
-If you run the container without root (for example with `user: "1000:1000"`, or on Kubernetes), fix the ownership yourself on the host first:
-
-
-Use `id -u` and `id -g` to find the right values for your system, and match them with `APP_UID` and `APP_GID`.
-
-### 4. First visit
+### 3. First visit
 
 Open `http://<host>:<port>/admin`:
 
