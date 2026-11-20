@@ -52,16 +52,7 @@ LLDAP_VOLUME=
 docker compose up -d --build
 ```
 
-### 3. Permissions on the data folder
-
-The container starts as root, sets the data folder to the owner `APP_UID:APP_GID` (1000:1000 by default), then drops privileges before starting Gunicorn.
-
-If you run the container without root (for example with `user: "1000:1000"`, or on Kubernetes), fix the ownership yourself on the host first:
-
-
-Use `id -u` and `id -g` to find the right values for your system, and match them with `APP_UID` and `APP_GID`.
-
-### 4. First visit
+### 3. First visit
 
 Open `http://<host>:<port>/admin`:
 
