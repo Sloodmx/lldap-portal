@@ -1,4 +1,3 @@
-#test
 import hashlib
 import hmac
 import html
@@ -28,13 +27,13 @@ from flask import (Flask, abort, g, make_response, redirect, render_template,
                    request, session, url_for)
 from i18n import SUPPORTED_LANGS, get_lang, set_default_language, t
 
-LOGO_URL = ""  # défini par _apply_settings (réglage « logo_url », vide = pas de logo)
+LOGO_URL = ""
 ACCENT_DEFAULT = "#b10008"
-ACCENT_COLOR = ACCENT_DEFAULT  # réglage « accent_color » (couleur des boutons, liens, focus)
+ACCENT_COLOR = ACCENT_DEFAULT
 BUTTON_BORDER_DEFAULT = "#2e2e2e"
-BUTTON_BORDER_COLOR = BUTTON_BORDER_DEFAULT  # réglage « button_border_color » (contours au repos)
+BUTTON_BORDER_COLOR = BUTTON_BORDER_DEFAULT
 HEX_COLOR_RE = re.compile(r"#[0-9a-fA-F]{6}")
-MAIL_TEMPLATES: dict = {}  # textes personnalisés des courriels (vide = texte par défaut)
+MAIL_TEMPLATES: dict = {}
 MAIL_SUBJECT_MAX = 150
 MAIL_BODY_MAX = 2000
 from flask.sessions import SecureCookieSessionInterface
@@ -49,7 +48,6 @@ app = Flask(__name__)
 
 @app.context_processor
 def _inject_ui():
-    """Variables communes à tous les gabarits : langue active, traduction, logo."""
     return {"_": t, "lang": get_lang(), "logo_url": LOGO_URL}
 
 
@@ -86,14 +84,6 @@ app.config.update(
 
 
 class _RequestAwareSessionInterface(SecureCookieSessionInterface):
-    """Cookie de session « Secure » selon la requête réellement reçue.
-
-    Un réglage global ne convient pas : avec une URL publique en https, un
-    accès local en HTTP (http://IP:port) recevait un cookie Secure que le
-    navigateur refuse. La connexion réussissait côté serveur, mais la session
-    n'était jamais conservée et la page de connexion revenait sans message.
-    """
-
     def get_cookie_secure(self, app):
         if request.is_secure:
             return True
@@ -109,7 +99,6 @@ SETTINGS_PATH = os.environ.get("SETTINGS_PATH") or os.path.join(DATA_DIR, "setti
 
 
 def _data_dir_hint() -> str:
-    """Explication actionnable quand le dossier de données n'est pas inscriptible."""
     uid = os.environ.get("APP_UID", "1000")
     gid = os.environ.get("APP_GID", "1000")
     return (
@@ -121,7 +110,6 @@ def _data_dir_hint() -> str:
 
 
 def _data_dir_writable() -> bool:
-    """Test d'écriture réel : sert au diagnostic et à /healthz."""
     probe = os.path.join(DATA_DIR, ".write-test")
     try:
         os.makedirs(DATA_DIR, exist_ok=True)
@@ -134,12 +122,6 @@ def _data_dir_writable() -> bool:
 
 
 def _load_secret_key() -> str:
-    """Clé de signature des sessions.
-
-    SECRET_KEY si fournie, sinon une clé aléatoire créée au premier démarrage
-    et conservée dans le dossier de données (fichier 0600) : les sessions
-    survivent aux redémarrages sans variable d'environnement.
-    """
     env = (os.environ.get("SECRET_KEY") or "").strip()
     if env:
         return env
@@ -186,12 +168,10 @@ ENV_DEFAULTS = {
     "logo_url": _env("APP_LOGO_URL"),
     "accent_color": _env("APP_ACCENT_COLOR", "#b10008"),
     "button_border_color": _env("APP_BUTTON_BORDER_COLOR", "#2e2e2e"),
-    # Couleurs des courriels. Vide pour l'accent = même couleur que le site.
     "mail_accent_color": "",
     "mail_background_color": "#141416",
     "mail_outer_color": "#121212",
     "mail_text_color": "#ffffff",
-    # Contenu des courriels. Vide = texte par défaut. Variables : {app}, {name}, {code}, {url}.
     "mail_code_subject": "",
     "mail_code_body": "",
     "mail_reset_subject": "",
@@ -216,7 +196,6 @@ ENV_DEFAULTS = {
     "lldap_admin_password": _env("LLDAP_ADMIN_PASSWORD"),
     "lldap_http_url": _env("LLDAP_HTTP_URL"),
     "ldap_timeout": _env_int("LDAP_TIMEOUT", 5),
-    # Optionnels : sans valeur, aucun rôle historique n'est créé (voir legacy_roles).
     "group_jellyfin": _env_int("LLDAP_GROUP_ID_JELLYFIN", 0),
     "group_silo": _env_int("LLDAP_GROUP_ID_SILO", 0),
     "roles": "",
@@ -288,17 +267,10 @@ _GROUP_CACHE_TTL = 300
 
 
 def _cookie_secure() -> bool:
-    """Cookies "Secure" seulement si l'accès public est en HTTPS.
-
-    En HTTP local (http://IP:port, http://localhost:port) un cookie Secure
-    n'est jamais renvoyé par le navigateur : la session admin ne tiendrait pas
-    et la validation du code échouerait.
-    """
     return _APP_SCHEME == "https"
 
 
 def _coerce(key: str, value):
-    """Ramène une valeur lue du fichier au bon type."""
     default = ENV_DEFAULTS[key]
     if key == "roles":
         if value is None or (isinstance(value, str) and not value.strip()):
@@ -315,7 +287,6 @@ def _coerce(key: str, value):
 
 
 def _parse_networks(value: str) -> list:
-    """Réseaux de proxys de confiance. Les entrées invalides sont ignorées."""
     nets = []
     for part in (value or "").replace(";", ",").split(","):
         part = part.strip()
@@ -341,11 +312,6 @@ ROLE_KEY_RE = re.compile(r"[a-z0-9][a-z0-9_-]{0,31}")
 
 
 def _role_key(label: str, taken: set) -> str:
-    """Clé interne stable, dérivée du nom visuel (jamais montrée au visiteur).
-
-    Elle sert de référence dans invites.json : renommer un rôle ne casse donc
-    jamais les invitations déjà créées.
-    """
     text = unicodedata.normalize("NFKD", label or "")
     text = "".join(c for c in text if not unicodedata.combining(c))
     base = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-") or "role"
@@ -359,11 +325,6 @@ def _role_key(label: str, taken: set) -> str:
 
 
 def parse_roles(raw) -> list:
-    """Rôles valides lus depuis settings.json (chaîne JSON ou liste).
-
-    Entrée = liste de {key, label, group} : label = nom affiché, group = nom du
-    groupe dans LLDAP (un nombre y est accepté et utilisé tel quel).
-    """
     if isinstance(raw, str):
         try:
             raw = json.loads(raw) if raw.strip() else []
@@ -389,19 +350,10 @@ def parse_roles(raw) -> list:
 
 
 def roles_value(roles: list) -> str:
-    """Sérialisation des rôles pour settings.json."""
     return json.dumps(roles, ensure_ascii=False)
 
 
 def legacy_roles(cfg: dict) -> list:
-    """Rôles historiques, repris de group_jellyfin / group_silo.
-
-    Sert d'amorçage : une installation existante retrouve ses deux accès
-    (modifiables et supprimables comme les autres) sans rien reconfigurer.
-    """
-    # Rôles d'amorçage pour les installations qui utilisaient les anciennes
-    # variables LLDAP_GROUP_ID_JELLYFIN / LLDAP_GROUP_ID_SILO. Sans ces
-    # variables, aucun rôle n'est créé : c'est à l'administrateur de les définir.
     out = []
     if cfg.get("group_jellyfin"):
         out.append({"key": "jellyfin", "label": "Jellyfin",
@@ -412,11 +364,6 @@ def legacy_roles(cfg: dict) -> list:
 
 
 def resolve_roles(cfg: dict) -> list:
-    """Rôles effectifs : ceux enregistrés, sinon les deux rôles historiques.
-
-    Une liste enregistrée (même vide, si l'admin a tout supprimé) fait foi ;
-    seule une configuration jamais touchée reprend Jellyfin et Silo.
-    """
     raw = cfg.get("roles")
     if isinstance(raw, str):
         if not raw.strip():
@@ -431,13 +378,11 @@ def resolve_roles(cfg: dict) -> list:
 
 
 def role_apps(roles: list) -> dict:
-    """Table {clé: {label, group}} utilisée partout par l'application."""
     return {r["key"]: {"label": r["label"], "group": r["group"]}
             for r in roles}
 
 
 def load_settings() -> dict:
-    """Charge settings.json ; les clés absentes reprennent l'environnement."""
     cfg = dict(ENV_DEFAULTS)
     try:
         with open(SETTINGS_PATH, encoding="utf-8") as f:
@@ -456,11 +401,10 @@ def load_settings() -> dict:
 
 
 class DataDirError(RuntimeError):
-    """Dossier de données absent ou non inscriptible (problème de droits)."""
+    pass
 
 
 def save_settings(cfg: dict):
-    """Écrit le fichier de configuration (droits 0600 : il contient des secrets)."""
     tmp = SETTINGS_PATH + ".tmp"
     try:
         os.makedirs(os.path.dirname(SETTINGS_PATH) or ".", exist_ok=True)
@@ -480,7 +424,6 @@ def get_settings() -> dict:
 
 
 def update_settings(new_values: dict) -> dict:
-    """Fusionne, applique et enregistre la configuration."""
     with _settings_lock:
         cfg = dict(_settings)
         cfg.update(new_values)
@@ -495,7 +438,6 @@ def update_settings(new_values: dict) -> dict:
 
 
 def _apply_settings(cfg: dict):
-    """Recalcule les variables globales utilisées par l'application."""
     global APP_NAME, APP_URL, _APP_NETLOC, _APP_SCHEME, INVITES_PATH, AUDIT_LOG_PATH
     global SMTP_HOST, SMTP_PORT, SMTP_SECURITY, SMTP_USER, SMTP_PASS
     global SMTP_FROM, SMTP_TIMEOUT, LOGO_URL, ACCENT_COLOR, BUTTON_BORDER_COLOR, MAIL_TEMPLATES
@@ -520,7 +462,6 @@ def _apply_settings(cfg: dict):
         "accent": (cfg["mail_accent_color"] if HEX_COLOR_RE.fullmatch(cfg["mail_accent_color"] or "")
                    else ACCENT_COLOR),
         "background": _mail_bg,
-        # Fond extérieur (autour de la carte), réglage indépendant.
         "outer": (cfg["mail_outer_color"]
                   if HEX_COLOR_RE.fullmatch(cfg["mail_outer_color"] or "") else "#121212"),
         "text": (cfg["mail_text_color"]
@@ -588,7 +529,6 @@ def _apply_settings(cfg: dict):
 
 
 def config_status(cfg: dict = None) -> list:
-    """État de la configuration : liste de (libellé, booléen)."""
     cfg = cfg or get_settings()
     return [
         ("Public URL", bool(cfg["app_url"])),
@@ -608,18 +548,11 @@ def config_status(cfg: dict = None) -> list:
 
 
 def roles_status(cfg: dict = None) -> list:
-    """Rôles configurés (libellé, groupe LLDAP) pour la page de configuration."""
     cfg = cfg or get_settings()
     return [(r["label"], r["group"]) for r in resolve_roles(cfg)]
 
 
 def data_files_status() -> list:
-    """Fichiers du dossier de données : liste de (libellé, chemin, présent).
-
-    Sert au diagnostic « je ne vois que invites.json » : le dossier de données
-    contient en réalité plusieurs fichiers, et ceux dont le nom commence par un
-    point (.secret_key) sont masqués par un « ls » ordinaire.
-    """
     return [
         ("settings.json", SETTINGS_PATH, os.path.exists(SETTINGS_PATH)),
         ("invites.json", INVITES_PATH, os.path.exists(INVITES_PATH)),
@@ -653,8 +586,6 @@ MAX_PASSWORD_LEN = 256
 
 
 def _csp(turnstile: bool) -> str:
-    """Politique de contenu. Le logo n'est autorisé que depuis son origine configurée
-    (réglage logo_url), calculée à chaque requête car les réglages peuvent changer."""
     img = "'self'"
     if LOGO_URL:
         parsed = urlparse(LOGO_URL)
@@ -693,7 +624,6 @@ _audit_file_handler = None
 
 
 def _audit_set_file(path: str):
-    """(Re)crée le gestionnaire de fichier du journal d'audit."""
     global _audit_file_handler
     old = _audit_file_handler
     handler = None
@@ -717,11 +647,6 @@ _audit_set_file(AUDIT_LOG_PATH)
 
 
 def _log_data_dir_state():
-    """Trace l'état du dossier de données au démarrage (diagnostic).
-
-    Répond directement à la question « pourquoi je ne vois que invites.json ? » :
-    chaque fichier attendu est listé avec son chemin et sa présence.
-    """
     logger = logging.getLogger("app")
     if _data_dir_writable():
         logger.info("data folder writable: %s", DATA_DIR)
@@ -747,14 +672,11 @@ ERROR_RESULTS = {"ldap_failed", "mail_failed", "rollback_failed", "error"}
 
 
 def _audit_pair(key: str, value) -> str:
-    """k=v. Une valeur contenant des espaces (ex. nom d'invitation) est mise entre
-    guillemets, pour que la ligne reste lisible et sans ambiguïté."""
     text = CONTROL_CHARS_RE.sub("?", str(value))[:120].replace('"', "'")
     return f'{key}="{text}"' if " " in text else f"{key}={text}"
 
 
 def audit(event: str, result: str, ip: str, **fields):
-    """Écrit une ligne d'audit. Ne jamais y passer de secret."""
     if result in ERROR_RESULTS:
         level = logging.ERROR
     elif result in WARNING_RESULTS:
@@ -766,13 +688,10 @@ def audit(event: str, result: str, ip: str, **fields):
 
 
 def _hash(value: str) -> str:
-    """SHA-256 : pour les codes d'invitation, jetons et identifiants de clés."""
     return hashlib.sha256(value.encode()).hexdigest()
 
 
 def _code_hash(code: str) -> str:
-    """HMAC avec la clé du serveur : un code à 6 chiffres ne peut pas être retrouvé
-    par force brute si le dossier de données fuit (la clé n'y est pas copiée)."""
     return hmac.new(app.secret_key.encode(), code.encode(), hashlib.sha256).hexdigest()
 
 
@@ -789,7 +708,6 @@ _log_data_dir_state()
 
 
 def _is_trusted_hop(addr: str) -> bool:
-    """Vrai si l'adresse appartient à un proxy déclaré de confiance."""
     try:
         ip = ipaddress.ip_address(addr)
     except ValueError:
@@ -798,12 +716,6 @@ def _is_trusted_hop(addr: str) -> bool:
 
 
 def get_client_ip() -> str:
-    """IP réelle du client.
-
-    Seuls les proxys de confiance (« Proxys de confiance » dans la configuration)
-    peuvent annoncer l'IP du visiteur. X-Forwarded-For est lu de droite à gauche
-    en sautant les proxys de confiance : le premier hôte inconnu est le client.
-    """
     remote = request.remote_addr or "0.0.0.0"
     if not _is_trusted_hop(remote):
         return remote
@@ -832,7 +744,6 @@ limiter = Limiter(
 
 
 def _request_hosts() -> set:
-    """Hôtes légitimes pour la requête : hôte réel + URL publique."""
     hosts = set()
     host = (request.host or "").strip().lower()
     if host:
@@ -843,12 +754,6 @@ def _request_hosts() -> set:
 
 
 def _is_same_origin(source: str) -> bool:
-    """Origine autorisée : même hôte que la requête ou que l'URL publique.
-
-    Le schéma n'est pas comparé : l'accès local en HTTP (http://192.168.1.10:8080
-    ou http://localhost:8080) doit fonctionner comme l'accès HTTPS derrière un
-    reverse proxy. Seul l'hôte compte, ce qui suffit contre le CSRF.
-    """
     try:
         parsed = urlparse(source)
     except ValueError:
@@ -858,9 +763,6 @@ def _is_same_origin(source: str) -> bool:
 
 
 def _origin_ok() -> bool:
-    """Protection CSRF : si un Origin (ou Referer) est fourni, il doit
-    correspondre à l'hôte de la requête. Aucun domaine n'est imposé : l'absence
-    des deux en-têtes est acceptée (accès direct, clients sans Origin)."""
     source = (request.headers.get("Origin")
               or request.headers.get("Referer") or "").strip()
     if not source:
@@ -869,11 +771,6 @@ def _origin_ok() -> bool:
 
 
 def _admin_ip_ok() -> bool:
-    """/admin seulement depuis ADMIN_ALLOWED_NETS, avec l'IP réelle du client.
-
-    Une requête qui passe par un proxy non déclaré de confiance (en-têtes de
-    transfert présents, hôte de confiance absent) n'a pas d'IP réelle fiable : refusée.
-    """
     forwarded = request.headers.get("X-Forwarded-For") or request.headers.get("CF-Connecting-IP")
     if forwarded and not _is_trusted_hop(request.remote_addr or ""):
         return False
@@ -885,7 +782,6 @@ def _admin_ip_ok() -> bool:
 
 
 def _pw_fingerprint() -> str:
-    """Empreinte du hash admin : un changement de mot de passe ferme les sessions ouvertes."""
     return _hash(ADMIN_PASSWORD_HASH or "")[:24]
 
 
@@ -903,7 +799,6 @@ def _open_admin_session(username: str):
 
 @app.before_request
 def _restrict_admin():
-    """Hors du réseau autorisé, /admin répond 404 : la page n'existe pas pour l'extérieur."""
     if request.path == "/admin" or request.path.startswith("/admin/"):
         if not _admin_ip_ok():
             audit("admin_access", "ip_denied", get_client_ip(), path=request.path)
@@ -942,7 +837,6 @@ def _invite_usable(inv: dict) -> bool:
 
 
 def find_invite_by_code(code: str):
-    """Retourne l'invitation si le code est valide, sinon None."""
     h = _hash(code)
     with _invites_lock:
         for inv in _read_invites():
@@ -955,14 +849,11 @@ INVITE_NAME_MAX = 80
 
 
 def clean_invite_name(raw) -> str:
-    """Nom libre d'une invitation (aide-mémoire dans le journal). Sans guillemets
-    ni caractères de contrôle, pour rester lisible dans audit.log."""
     text = CONTROL_CHARS_RE.sub(" ", str(raw or "")).replace('"', "'")
     return " ".join(text.split())[:INVITE_NAME_MAX]
 
 
 def create_invite(apps: list, uses: int, days: int, name: str = ""):
-    """Crée une invitation. Retourne (id, code). Le code n'est affiché qu'une fois."""
     code = "".join(secrets.choice(INVITE_CODE_ALPHABET) for _ in range(INVITE_CODE_LEN))
     inv = {
         "id": secrets.token_hex(6),
@@ -1021,8 +912,6 @@ def revoke_invite(invite_id: str) -> bool:
 
 
 def purge_inactive_invites() -> int:
-    """Retire les invitations révoquées, expirées ou épuisées (les liens encore
-    actifs sont conservés). Retourne le nombre d'entrées supprimées."""
     with _invites_lock:
         items = _read_invites()
         keep = [inv for inv in items if _invite_usable(inv)]
@@ -1033,7 +922,6 @@ def purge_inactive_invites() -> int:
 
 
 def reserve_invite(invite_id: str) -> bool:
-    """Décrémente une utilisation de façon atomique. False si plus utilisable."""
     with _invites_lock:
         items = _read_invites()
         for inv in items:
@@ -1047,10 +935,6 @@ def reserve_invite(invite_id: str) -> bool:
 
 
 def reserve_code_send(invite_id: str) -> bool:
-    """Compte un envoi de code pour cette invitation. False si son plafond est atteint.
-
-    Empêche un détenteur d'invitation d'utiliser le formulaire comme relais de courriels.
-    """
     with _invites_lock:
         items = _read_invites()
         for inv in items:
@@ -1064,7 +948,6 @@ def reserve_code_send(invite_id: str) -> bool:
 
 
 def release_invite(invite_id: str):
-    """Rend une utilisation réservée si la création du compte a échoué."""
     with _invites_lock:
         items = _read_invites()
         for inv in items:
@@ -1089,7 +972,6 @@ _addr_fails: dict[str, dict] = {}
 
 
 def address_send_allowed(email: str) -> bool:
-    """Plafond d'envois de code par adresse et par heure (indépendant de l'IP et de l'invitation)."""
     key = _hash(email.lower())
     now = time.time()
     with _addr_lock:
@@ -1102,14 +984,12 @@ def address_send_allowed(email: str) -> bool:
 
 
 def address_locked(email: str) -> bool:
-    """Vrai si cette adresse a trop échoué à la vérification du code."""
     with _addr_lock:
         rec = _addr_fails.get(_hash(email.lower()))
         return bool(rec and rec["until"] > time.time())
 
 
 def record_address_failure(email: str):
-    """Compte les mauvais codes par adresse : relancer une inscription ne remet pas le compteur à zéro."""
     key = _hash(email.lower())
     now = time.time()
     with _addr_lock:
@@ -1123,12 +1003,6 @@ def record_address_failure(email: str):
 
 def start_signup(invite: dict, username: str, display_name: str, email: str,
                  password: str, code: str) -> str:
-    """Enregistre une inscription en cours.
-
-    Le mot de passe est conservé en mémoire seulement (jamais écrit sur disque,
-    jamais journalisé) : il n'est utilisé qu'après la validation du code courriel,
-    pour créer le compte. L'inscription disparaît après 30 minutes.
-    """
     token = secrets.token_urlsafe(32)
     now = time.time()
     with _signups_lock:
@@ -1162,11 +1036,6 @@ def get_signup(token: str):
 
 
 def check_code(token: str, code: str) -> str:
-    """Retourne ok, wrong, expired, locked, busy ou missing.
-
-    "busy" signifie qu'une autre requête crée déjà le compte pour ce code :
-    le compte ne doit pas être créé deux fois si l'utilisateur double-clique.
-    """
     now = time.time()
     key = _hash(token)
     with _signups_lock:
@@ -1188,7 +1057,6 @@ def check_code(token: str, code: str) -> str:
 
 
 def set_new_code(token: str, code: str) -> int:
-    """Retourne -1 si inscription absente, N > 0 si trop tôt (secondes), 0 si remplacé."""
     now = time.time()
     with _signups_lock:
         s = _signups.get(_hash(token))
@@ -1204,12 +1072,6 @@ def set_new_code(token: str, code: str) -> int:
 
 
 def create_account_from_signup(s: dict, ip: str = "-") -> str:
-    """Crée le compte LLDAP, définit le mot de passe et ajoute les groupes.
-
-    Retourne "ok", "exhausted" (invitation déjà consommée) ou "failed"
-    (erreur LLDAP ; le compte partiellement créé est alors supprimé et
-    l'invitation recréditée).
-    """
     username = s["username"]
     display_name = s.get("display_name") or username
     invite_id = s["invite_id"]
@@ -1247,7 +1109,6 @@ def create_account_from_signup(s: dict, ip: str = "-") -> str:
 
 
 def finish_signup(token: str, success: bool):
-    """Succès : l'inscription est supprimée. Échec : elle reste utilisable."""
     key = _hash(token or "")
     with _signups_lock:
         if success:
@@ -1257,8 +1118,6 @@ def finish_signup(token: str, success: bool):
 
 
 def _ldap_connect(bind_dn: str = None, bind_password: str = None) -> Connection:
-    """Connexion liée. Par défaut : compte technique (inscriptions). La
-    réinitialisation fournit son propre compte de service."""
     dn = LDAP_BIND_DN if bind_dn is None else bind_dn
     password = LDAP_BIND_PASSWORD if bind_password is None else bind_password
     if not LDAP_HOST or not LDAP_BASE_DN or not dn or not password:
@@ -1274,7 +1133,6 @@ def _ldap_connect(bind_dn: str = None, bind_password: str = None) -> Connection:
 
 
 def ldap_user_exists(value: str) -> bool:
-    """Vrai si un compte a ce uid ou ce courriel."""
     q = escape_filter_chars(value)
     conn = _ldap_connect()
     try:
@@ -1289,7 +1147,6 @@ def ldap_user_exists(value: str) -> bool:
 
 def set_ldap_password(user_dn: str, new_password: str,
                       bind_dn: str = None, bind_password: str = None):
-    """Définit le mot de passe (opération étendue LDAP, RFC 3062)."""
     conn = _ldap_connect(bind_dn, bind_password)
     try:
         conn.extend.standard.modify_password(user_dn, None, new_password)
@@ -1309,11 +1166,6 @@ GROUPS_QUERY = "query { groups { id displayName } }"
 
 
 def lldap_group_map() -> dict:
-    """Groupes de l'annuaire : {nom en minuscules: identifiant}. Cache 5 min.
-
-    Permet de désigner un rôle par le *nom* du groupe LLDAP plutôt que par un
-    identifiant numérique, que personne ne connaît de tête.
-    """
     now = time.time()
     with _GROUP_CACHE_LOCK:
         if _GROUP_CACHE["map"] and now - _GROUP_CACHE["at"] < _GROUP_CACHE_TTL:
@@ -1335,11 +1187,6 @@ def lldap_group_map() -> dict:
 
 
 def group_id_for(reference: str):
-    """Identifiant numérique du groupe LLDAP désigné par son nom (ou son id).
-
-    Accepte aussi un identifiant numérique tapé directement. Lève LookupError
-    avec un message clair si le groupe n'existe pas dans l'annuaire.
-    """
     ref = (reference or "").strip()
     if not ref:
         raise LookupError("no LLDAP group is set for this role")
@@ -1402,7 +1249,6 @@ _SMTP_TLS_HINT = (
 
 
 def _smtp_error_hint(exc: BaseException, code, lang: str = None) -> str:
-    """Piste concrète à afficher pour un échec SMTP donné (ou chaîne vide)."""
     if code in _SMTP_CODE_HINTS:
         return t(_SMTP_CODE_HINTS[code], lang=lang)
     if isinstance(exc, smtplib.SMTPAuthenticationError):
@@ -1444,12 +1290,6 @@ def _smtp_error_hint(exc: BaseException, code, lang: str = None) -> str:
 
 
 def _smtp_error_detail(exc: BaseException, lang: str = None) -> str:
-    """Explique un échec SMTP en clair (interface Configuration et journaux).
-
-    smtplib ne conserve que la réponse brute du serveur dans ``smtp_code`` /
-    ``smtp_error`` : c'est cette réponse qu'il faut remonter. ``lang`` choisit la
-    langue du texte (les journaux d'audit passent "en").
-    """
     raw = getattr(exc, "smtp_error", None)
     if isinstance(raw, (bytes, bytearray)):
         raw = raw.decode("utf-8", "replace")
@@ -1475,8 +1315,6 @@ def _smtp_error_detail(exc: BaseException, lang: str = None) -> str:
 
 
 def _smtp_send(to_email: str, msg_str: str):
-    """Envoie un message. Sécurité choisie dans la configuration :
-    starttls (587), ssl (465) ou none (relais local)."""
     ctx = ssl.create_default_context()
     if not SMTP_HOST:
         raise RuntimeError("SMTP not configured (see /admin/settings)")
@@ -1503,7 +1341,6 @@ def _smtp_send(to_email: str, msg_str: str):
 
 
 def _logo_block(safe_app: str) -> str:
-    """Logo du courriel : seulement si une URL de logo est configurée."""
     if not LOGO_URL:
         return ""
     return (f'<tr><td align="center" style="padding:30px 40px 20px 40px;">'
@@ -1512,7 +1349,6 @@ def _logo_block(safe_app: str) -> str:
 
 
 def _mail_fill(template: str, **values) -> str:
-    """Remplace {nom} par sa valeur. Substitution simple : une accolade inconnue reste telle quelle."""
     out = template
     for key, value in values.items():
         out = out.replace("{" + key + "}", str(value))
@@ -1520,7 +1356,6 @@ def _mail_fill(template: str, **values) -> str:
 
 
 def _mail_html_text(template: str, **values) -> str:
-    """Texte personnalisé pour le HTML : valeurs et texte échappés, retours à la ligne en <br>."""
     escaped = {k: html.escape(str(v), quote=True) for k, v in values.items()}
     body = html.escape(template, quote=False)
     for key, value in escaped.items():
@@ -1587,7 +1422,6 @@ def send_code_email(to_email: str, display_name: str, code: str, lang: str = Non
 
 
 def send_test_email(to_email: str):
-    """Courriel de test envoyé depuis la page de configuration."""
     msg = MIMEMultipart("alternative")
     msg["Subject"] = t("[{app}] SMTP configuration test", app=APP_NAME)
     msg["From"] = f"{APP_NAME} <{SMTP_FROM or SMTP_USER}>"
@@ -1611,7 +1445,6 @@ def _identity_problem(username: str, display_name: str, email: str):
 
 
 def password_policy_problem(password: str):
-    """Politique : longueur minimale, une majuscule, un chiffre et un caractère spécial."""
     if len(password) < MIN_PASSWORD_LEN:
         return f"Password must be at least {MIN_PASSWORD_LEN} characters."
     if not any(c.isupper() for c in password):
@@ -1664,11 +1497,6 @@ def _invalid_signup_page(status: int = 410):
 
 def _form_page(code: str, labels: list, error=None, username="", email="",
                status=200):
-    """Formulaire unique : nom d'utilisateur, mot de passe et courriel.
-
-    Le nom affiché n'est plus demandé : il reprend exactement le nom
-    d'utilisateur (c'est le même identifiant partout dans l'annuaire).
-    """
     return _invite_page("form", status, action=url_for("invite_flow", code=code),
                         apps=labels, error=error, username=username, email=email,
                         **turnstile_context())
@@ -1683,9 +1511,6 @@ def turnstile_enabled() -> bool:
 
 
 def turnstile_context() -> dict:
-    """Variables de gabarit du widget ; vide si Turnstile n'est pas configuré.
-
-    Marque aussi la réponse pour que la CSP laisse passer Cloudflare."""
     if not turnstile_enabled():
         return {}
     g.turnstile = True
@@ -1693,11 +1518,6 @@ def turnstile_context() -> dict:
 
 
 def turnstile_ok(ip: str) -> bool:
-    """Vérifie le jeton du widget auprès de Cloudflare (siteverify).
-
-    Retourne True si Turnstile n'est pas configuré. Si Cloudflare est
-    injoignable, la vérification échoue (on refuse plutôt que de laisser passer).
-    """
     if not turnstile_enabled():
         return True
     token = request.form.get("cf-turnstile-response", "")
@@ -1736,7 +1556,6 @@ _reset_cooldowns_lock = threading.Lock()
 
 
 def reserve_reset_slot(identifier: str) -> int:
-    """0 si la demande est permise (et enregistrée), sinon le nombre de secondes à attendre."""
     now = time.monotonic()
     key = _hash(identifier)
     with _reset_cooldowns_lock:
@@ -1750,18 +1569,14 @@ def reserve_reset_slot(identifier: str) -> int:
 
 
 def _ref(value: str) -> str:
-    """Référence courte et non réversible pour un identifiant ou un courriel (journal)."""
     return _hash(value)[:10]
 
 
 def _token_ref(token: str) -> str:
-    """Référence courte et non réversible : relie les lignes d'un même lien sans
-    jamais écrire le jeton dans le journal."""
     return _hash(token)[:10]
 
 
 def reset_problem():
-    """Raison technique pour laquelle la réinitialisation ne peut pas servir, ou None."""
     if not RESET_BIND_DN or not RESET_BIND_PASSWORD:
         return "reset service account missing"
     if not LDAP_HOST or not LDAP_BASE_DN:
@@ -1772,7 +1587,6 @@ def reset_problem():
 
 
 def _first(entry, name: str) -> str:
-    """Première valeur d'un attribut LDAP, ou chaîne vide."""
     try:
         value = entry[name].value
     except Exception:
@@ -1783,7 +1597,6 @@ def _first(entry, name: str) -> str:
 
 
 def _all(entry, name: str) -> list:
-    """Toutes les valeurs d'un attribut LDAP (liste vide si absent)."""
     try:
         return [str(v) for v in entry[name].values]
     except Exception:
@@ -1791,13 +1604,10 @@ def _all(entry, name: str) -> list:
 
 
 def _cn(dn: str) -> str:
-    """Nom court d'un groupe : cn=silo-users,ou=... -> silo-users."""
     return dn.split(",")[0].split("=", 1)[-1]
 
 
 def find_user(query: str):
-    """Compte LLDAP dont l'uid ou le courriel correspond exactement, sinon None
-    (aucun compte, ou plusieurs). Lève une exception si LLDAP est injoignable."""
     q = escape_filter_chars(query)
     conn = _ldap_connect(RESET_BIND_DN, RESET_BIND_PASSWORD)
     try:
@@ -1822,7 +1632,6 @@ def find_user(query: str):
 
 
 def _reset_group_allowed(groups: list) -> bool:
-    """Vrai si le compte est membre d'au moins un groupe autorisé (ou si aucune restriction)."""
     if not RESET_ALLOWED_GROUPS:
         return True
     names = {_cn(g).lower() for g in groups}
@@ -1852,7 +1661,6 @@ def is_reset_token_valid(token: str) -> bool:
 
 
 def begin_reset(token: str):
-    """Réserve le jeton pour une modification. None si invalide, expiré ou en cours."""
     with _resets_lock:
         entry = _resets.get(_hash(token))
         if not entry or entry["busy"] or entry["expires"] <= time.monotonic():
@@ -1862,7 +1670,6 @@ def begin_reset(token: str):
 
 
 def finish_reset(token: str, success: bool):
-    """Succès : le jeton disparaît. Échec : il reste utilisable jusqu'à son expiration."""
     key = _hash(token)
     with _resets_lock:
         if success:
@@ -1872,7 +1679,6 @@ def finish_reset(token: str, success: bool):
 
 
 def send_reset_email(to_email: str, username: str, reset_url: str, lang: str = None):
-    """Courriel de réinitialisation, dans le même style que le courriel de code."""
     to_email = to_email.strip()
     if not EMAIL_RE.fullmatch(to_email) or CONTROL_CHARS_RE.search(to_email):
         raise ValueError(t("Invalid email address.", lang=lang))
@@ -1933,7 +1739,6 @@ def send_reset_email(to_email: str, username: str, reset_url: str, lang: str = N
 
 
 def _process_reset(query_input: str, ip: str):
-    """Traitement en arrière-plan : la réponse HTTP ne révèle jamais si le compte existe."""
     try:
         user = find_user(query_input)
         if not user:
@@ -2231,7 +2036,6 @@ def resend_code():
 
 MAIL_BODY_FIELDS = ("mail_code_body", "mail_reset_body")
 MAIL_SUBJECT_FIELDS = ("mail_code_subject", "mail_reset_subject")
-# Textes des courriels : les retours à la ligne sont conservés, les autres caractères de contrôle non.
 CONTROL_NO_NL_RE = re.compile(r"[\x00-\x09\x0b-\x1f\x7f]")
 
 SETTINGS_TEXT_FIELDS = (
@@ -2267,12 +2071,6 @@ ROLE_FIELD_KEY = "role_key"
 
 
 def _roles_from_form(form) -> tuple:
-    """Rôles saisis dans la page de configuration (retourne liste, erreur).
-
-    Chaque ligne du formulaire fournit trois valeurs parallèles : le nom visuel,
-    le nom du groupe dans LLDAP, et la clé interne (cachée) qui permet de
-    renommer un rôle sans casser les invitations déjà créées.
-    """
     labels = form.getlist(ROLE_FIELD_LABEL)
     groups = form.getlist(ROLE_FIELD_GROUP)
     keys = form.getlist(ROLE_FIELD_KEY)
@@ -2329,12 +2127,6 @@ def _admin_setup_page(error=None, username="", status=200):
 
 
 def _smtp_summary() -> list:
-    """Réglages SMTP réellement utilisés (sans les secrets), en (libellé, valeur).
-
-    Affiché avec le diagnostic d'échec : « mes informations sont bonnes »
-    signifie souvent que la sécurité choisie ne correspond pas au port, ou que
-    l'utilisateur est vide alors que le serveur exige une authentification.
-    """
     labels = {"starttls": "STARTTLS", "ssl": "SSL", "none": "aucune"}
     return [
         ("Host", SMTP_HOST or "(empty)"),
@@ -2350,7 +2142,6 @@ TAB_KEYS = ("general", "smtp", "ldap", "reset", "turnstile", "roles", "admin", "
 
 
 def _requested_tab() -> str:
-    """Onglet de la configuration à réafficher (formulaire ou lien ?tab=)."""
     tab = request.form.get("settings_tab") or request.args.get("tab") or ""
     return tab if tab in TAB_KEYS else "general"
 
@@ -2391,7 +2182,6 @@ def admin_home():
 @app.route("/admin/setup", methods=["POST"])
 @limiter.limit("5 per minute; 20 per hour")
 def admin_setup():
-    """Premier démarrage : choix du nom d'utilisateur et du mot de passe admin."""
     ip = get_client_ip()
     if ADMIN_PASSWORD_HASH:
         return redirect(url_for("admin_home"))
@@ -2515,7 +2305,6 @@ def admin_save_settings():
         elif not HEX_COLOR_RE.fullmatch(cfg[key]):
             return _admin_settings_page(cfg, error=t("Invalid colour: use the form #rrggbb."),
                                         status=400)
-    # Couleur d'accent des courriels : vide = même couleur que le site.
     if cfg["mail_accent_color"] and not HEX_COLOR_RE.fullmatch(cfg["mail_accent_color"]):
         return _admin_settings_page(cfg, error=t("Invalid colour: use the form #rrggbb."),
                                     status=400)
@@ -2623,7 +2412,6 @@ def admin_save_settings():
 
 @app.route("/theme.css", methods=["GET"])
 def theme_css():
-    """Couleurs configurables. Servi en fichier externe : la CSP interdit les styles inline."""
     r, g, b = (int(ACCENT_COLOR[i:i + 2], 16) for i in (1, 3, 5))
     hover = "#%02x%02x%02x" % tuple(int(c * 0.7) for c in (r, g, b))
     bright = "#%02x%02x%02x" % tuple(int(c + (255 - c) * 0.3) for c in (r, g, b))
@@ -2740,7 +2528,6 @@ def security_headers(resp):
 
 @app.errorhandler(DataDirError)
 def data_dir_handler(e):
-    """Problème de droits sur le dossier de données : message clair, pas un 500 nu."""
     audit("data_dir", "error", get_client_ip(), path=request.path)
     logging.getLogger("app").error("data folder: %s", e)
     admin_ctx = request.path.startswith("/admin")
@@ -2763,14 +2550,11 @@ def ratelimit_handler(e):
 
 @app.route("/")
 def index():
-    """Compatibilité : l'ancienne application de réinitialisation servait son
-    formulaire à la racine. On y redirige vers la page actuelle."""
     return redirect(url_for("forgot_password"))
 
 
 @app.route("/healthz")
 def healthz():
-    """Sonde de santé : signale un dossier de données non inscriptible."""
     if not _data_dir_writable():
         return {"status": "error"}, 503
     return {"status": "ok"}
